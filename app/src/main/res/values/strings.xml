@@ -1,0 +1,61 @@
+<resources>
+    <string name="app_name">Music Player</string>
+    <string name="tab_songs">Songs</string>
+    <string name="tab_albums">Albums</string>
+    <string name="tab_artists">Artists</string>
+    <string name="tab_favorites">Favorites</string>
+    <string name="tab_playlists">Playlists</string>
+
+    <string name="search_placeholder">Search songs, artists, albums...</string>
+    <string name="no_results_found">No music found matching your search</string>
+
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="shuffle_on">Shuffle On</string>
+    <string name="shuffle_off">Shuffle Off</string>
+    <string name="repeat_off">Repeat Off</string>
+    <string name="repeat_all">Repeat All</string>
+    <string name="repeat_one">Repeat One</string>
+    <string name="queue">Queue</string>
+    <string name="queue_empty">Queue is empty</string>
+    <string name="clear_queue">Clear</string>
+    <string name="now_playing">Now Playing</string>
+    <string name="unknown_artist">Unknown Artist</string>
+    <string name="unknown_album">Unknown Album</string>
+
+    <string name="sleep_timer">Sleep Timer</string>
+    <string name="sleep_timer_active">Timer: %1$d min left</string>
+    <string name="sleep_timer_off">Sleep timer disabled</string>
+    <string name="timer_turn_off_in">Turn off audio in:</string>
+    <string name="minutes_suffix">%1$d minutes</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="create">Create</string>
+    <string name="delete">Delete</string>
+    <string name="rename">Rename</string>
+
+    <string name="add_to_playlist">Add to Playlist</string>
+    <string name="create_playlist">New Playlist</string>
+    <string name="playlist_name">Playlist Name</string>
+    <string name="playlist_deleted">Playlist deleted</string>
+    <string name="song_added_to_playlist">Added to playlist</string>
+    <string name="song_removed">Removed from playlist</string>
+    <string name="added_to_favorites">Added to Favorites</string>
+    <string name="removed_from_favorites">Removed from Favorites</string>
+    <string name="favorites_empty">No favorite songs yet</string>
+    <string name="playlists_empty">No playlists created yet</string>
+    <string name="songs_count">%1$d songs</string>
+    <string name="empty_songs_title">No Music Found</string>
+    <string name="empty_songs_desc">Copy audio files to your device storage or load demo tracks to try playback right now.</string>
+    <string name="load_demo_tracks">Load Demo Tracks</string>
+
+    <string name="permission_title">Storage Permission Required</string>
+    <string name="permission_desc">Music Player needs permission to read audio files from your device storage to play your music.</string>
+    <string name="grant_permission">Allow Access</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="playback_channel_name">Music Playback</string>
+    <string name="playback_channel_desc">Shows playback controls and currently playing song</string>
+</resources>

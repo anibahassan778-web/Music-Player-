@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer concentric sound wave / vinyl grooves -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#66FFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M54,54m-30,0a30,30 0 1,0 60,0a30,30 0 1,0 -60,0" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M54,54m-23,0a23,23 0 1,0 46,0a23,23 0 1,0 -46,0" />
+
+    <!-- Center music note badge -->
+    <!-- Stem and beam -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49,34 l18,-4 v6 l-18,4 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49,34 v24.5 a6.5,5 0 1,1 -5,-4.8 c1.2,-0.3 2.8,-0.2 5,0.8 v-20.5 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M67,30 v23.5 a6.5,5 0 1,1 -5,-4.8 c1.2,-0.3 2.8,-0.2 5,0.8 v-19.5 z" />
+
+    <!-- Small play spark indicator -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M70,55 l7,4.5 l-7,4.5 z" />
+</vector>

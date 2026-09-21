@@ -1,0 +1,61 @@
+<resources>
+    <string name="app_name">مشغل الموسيقى</string>
+    <string name="tab_songs">الأغاني</string>
+    <string name="tab_albums">الألبومات</string>
+    <string name="tab_artists">الفنانين</string>
+    <string name="tab_favorites">المفضلة</string>
+    <string name="tab_playlists">قوائم التشغيل</string>
+
+    <string name="search_placeholder">ابحث عن أغنية أو فنان أو ألبوم...</string>
+    <string name="no_results_found">لم يتم العثور على مقاطع صوتية مطابقة</string>
+
+    <string name="play">تشغيل</string>
+    <string name="pause">إيقاف مؤقت</string>
+    <string name="next">التالي</string>
+    <string name="previous">السابق</string>
+    <string name="shuffle">عشوائي</string>
+    <string name="shuffle_on">التشغيل العشوائي مفعّل</string>
+    <string name="shuffle_off">التشغيل العشوائي معطّل</string>
+    <string name="repeat_off">بدون تكرار</string>
+    <string name="repeat_all">تكرار الكل</string>
+    <string name="repeat_one">تكرار الأغنية</string>
+    <string name="queue">قائمة الانتظار</string>
+    <string name="queue_empty">قائمة الانتظار فارغة</string>
+    <string name="clear_queue">مسح</string>
+    <string name="now_playing">قيد التشغيل الآن</string>
+    <string name="unknown_artist">فنان غير معروف</string>
+    <string name="unknown_album">ألبوم غير معروف</string>
+
+    <string name="sleep_timer">مؤقت النوم</string>
+    <string name="sleep_timer_active">المؤقت: متبقي %1$d دقيقة</string>
+    <string name="sleep_timer_off">مؤقت النوم معطّل</string>
+    <string name="timer_turn_off_in">إيقاف الصوت بعد:</string>
+    <string name="minutes_suffix">%1$d دقيقة</string>
+    <string name="cancel">إلغاء</string>
+    <string name="save">حفظ</string>
+    <string name="create">إنشاء</string>
+    <string name="delete">حذف</string>
+    <string name="rename">إعادة تسمية</string>
+
+    <string name="add_to_playlist">إضافة إلى قائمة التشغيل</string>
+    <string name="create_playlist">قائمة تشغيل جديدة</string>
+    <string name="playlist_name">اسم قائمة التشغيل</string>
+    <string name="playlist_deleted">تم حذف قائمة التشغيل</string>
+    <string name="song_added_to_playlist">تمت الإضافة إلى قائمة التشغيل</string>
+    <string name="song_removed">تمت الإزالة من قائمة التشغيل</string>
+    <string name="added_to_favorites">تمت الإضافة إلى المفضلة</string>
+    <string name="removed_from_favorites">تمت الإزالة من المفضلة</string>
+    <string name="favorites_empty">لا توجد أغانٍ مفضلة بعد</string>
+    <string name="playlists_empty">لم يتم إنشاء أي قائمة تشغيل بعد</string>
+    <string name="songs_count">%1$d أغنية</string>
+    <string name="empty_songs_title">لم يتم العثور على موسيقى</string>
+    <string name="empty_songs_desc">انسخ ملفات MP3 إلى ذاكرة جهازك أو حمّل المقاطع التجريبية لتجربة المشغل الآن.</string>
+    <string name="load_demo_tracks">تحميل مقاطع تجريبية</string>
+
+    <string name="permission_title">مطلوب إذن الوصول إلى الوسائط</string>
+    <string name="permission_desc">يحتاج مشغل الموسيقى إذن الوصول إلى الملفات الصوتية في ذاكرة جهازك لتشغيل أغانيك.</string>
+    <string name="grant_permission">منح الإذن</string>
+    <string name="open_settings">فتح الإعدادات</string>
+    <string name="playback_channel_name">تشغيل الموسيقى</string>
+    <string name="playback_channel_desc">إشعار التحكم في تشغيل الموسيقى</string>
+</resources>

@@ -1,0 +1,6 @@
+{
+  "name": "Music Player",
+  "description": "Offline Music Player with Media3 ExoPlayer, playlists, favorites, and sleep timer",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
