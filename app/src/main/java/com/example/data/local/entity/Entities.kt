@@ -58,3 +58,21 @@ data class PlaylistSongEntity(
         albumArtUri = albumArtUri
     )
 }
+
+@Entity(tableName = "song_custom_metadata")
+data class SongCustomMetadataEntity(
+    @PrimaryKey val songId: Long,
+    val customTitle: String,
+    val customArtist: String,
+    val customAlbum: String,
+    val customArtworkUri: String? = null,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "song_lyrics")
+data class SongLyricsEntity(
+    @PrimaryKey val songId: Long,
+    val lyricsText: String,
+    val isSynced: Boolean = false,
+    val updatedAt: Long = System.currentTimeMillis()
+)

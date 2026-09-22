@@ -1,10 +1,33 @@
 package com.example.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.ActivityResultRegistryOwner
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityOptionsCompat
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +51,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.MusicNote
@@ -51,6 +75,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,6 +92,8 @@ import com.example.R
 import com.example.domain.model.Song
 import com.example.ui.components.AddToPlaylistDialog
 import com.example.ui.components.CreatePlaylistDialog
+import com.example.ui.components.EditLyricsDialog
+import com.example.ui.components.EditSongInfoDialog
 import com.example.ui.components.FullPlayerModal
 import com.example.ui.components.MiniPlayer
 import com.example.ui.components.PermissionScreen
@@ -76,35 +103,85 @@ import com.example.ui.screens.AlbumsScreen
 import com.example.ui.screens.ArtistsScreen
 import com.example.ui.screens.FavoritesScreen
 import com.example.ui.screens.PlaylistsScreen
+import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SongsScreen
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     viewModel: MusicViewModel = viewModel()
 ) {
+    val currentRegistryOwner = LocalActivityResultRegistryOwner.current
+    if (currentRegistryOwner == null) {
+        val dummyOwner = remember {
+            object : ActivityResultRegistryOwner {
+                override val activityResultRegistry: ActivityResultRegistry = object : ActivityResultRegistry() {
+                    override fun <I, O> onLaunch(
+                        requestCode: Int,
+                        contract: ActivityResultContract<I, O>,
+                        input: I,
+                        options: ActivityOptionsCompat?
+                    ) {}
+                }
+            }
+        }
+        CompositionLocalProvider(LocalActivityResultRegistryOwner provides dummyOwner) {
+            MainScreenContent(viewModel = viewModel)
+        }
+    } else {
+        MainScreenContent(viewModel = viewModel)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScreenContent(
+    viewModel: MusicViewModel
+) {
     val context = LocalContext.current
 
-    val requiredPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_AUDIO
+    val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        listOf(
+            Manifest.permission.READ_MEDIA_AUDIO,
+            Manifest.permission.POST_NOTIFICATIONS
+        )
     } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
+        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 
-    var hasPermission by remember {
+    var hasAudioPermission by remember {
+        val primaryPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, requiredPermission) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, primaryPerm) == PackageManager.PERMISSION_GRANTED
         )
     }
 
     var usedFallbackMode by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
+    val permissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        val primaryPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        val isAudioGranted = results[primaryPerm] == true
+        hasAudioPermission = isAudioGranted
+        if (isAudioGranted) {
             viewModel.loadSongs()
+        }
+    }
+
+    val audioPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (!uris.isNullOrEmpty()) {
+            viewModel.importAudioUris(uris)
+            usedFallbackMode = true
         }
     }
 
@@ -117,29 +194,71 @@ fun MainScreen(
     val playlists by viewModel.playlists.collectAsState()
     val playerState by viewModel.playerUiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val appSettings by viewModel.appSettings.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var showFullPlayer by remember { mutableStateOf(false) }
+    var showSettingsScreen by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showQueueDialog by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showCreatePlaylistForSong by remember { mutableStateOf(false) }
+    var songToEditInfo by remember { mutableStateOf<Song?>(null) }
+    var songToEditLyrics by remember { mutableStateOf<Song?>(null) }
+
+    val currentSongLyrics by produceState<String?>(initialValue = null, key1 = playerState.currentSong?.id) {
+        val songId = playerState.currentSong?.id
+        if (songId != null) {
+            viewModel.getLyricsForSong(songId).collect { value = it?.lyricsText }
+        } else {
+            value = null
+        }
+    }
 
     var isSearchActive by remember { mutableStateOf(false) }
 
-    LaunchedEffect(hasPermission) {
-        if (hasPermission) {
+    BackHandler(enabled = showSettingsScreen || showFullPlayer || isSearchActive) {
+        when {
+            showFullPlayer -> showFullPlayer = false
+            showSettingsScreen -> showSettingsScreen = false
+            isSearchActive -> isSearchActive = false
+        }
+    }
+
+    LaunchedEffect(hasAudioPermission) {
+        if (hasAudioPermission) {
             viewModel.loadSongs()
         }
     }
 
-    if (!hasPermission && !usedFallbackMode) {
+    if (!hasAudioPermission && !usedFallbackMode && songs.isEmpty()) {
         PermissionScreen(
-            onRequestPermission = { permissionLauncher.launch(requiredPermission) },
-            onUseDemoTracks = {
-                usedFallbackMode = true
-                viewModel.loadDemoTracks()
+            onRequestPermission = { permissionsLauncher.launch(requiredPermissions.toTypedArray()) },
+            onOpenAppSettings = {
+                try {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            },
+            onImportAudioFiles = {
+                audioPickerLauncher.launch(arrayOf("audio/*"))
             }
+        )
+    } else if (showSettingsScreen) {
+        SettingsScreen(
+            appSettings = appSettings,
+            onNavigateBack = { showSettingsScreen = false },
+            onUpdateFontPreset = { viewModel.updateFontPreset(it) },
+            onUpdateLanguageCode = { viewModel.updateLanguageCode(it) },
+            onUpdateFontScale = { viewModel.updateFontScale(it) },
+            onImportCustomFont = { uri, name, cb -> viewModel.importCustomTtfFont(uri, name, cb) },
+            onRemoveCustomFont = { viewModel.removeCustomTtfFont() },
+            onUpdateCrossfadeSeconds = { viewModel.updateCrossfadeSeconds(it) }
         )
     } else {
         Scaffold(
@@ -209,6 +328,15 @@ fun MainScreen(
                                         contentDescription = "Search"
                                     )
                                 }
+                                IconButton(
+                                    onClick = { showSettingsScreen = true },
+                                    modifier = Modifier.testTag("settings_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = stringResource(R.string.settings)
+                                    )
+                                }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = MaterialTheme.colorScheme.surface
@@ -223,8 +351,12 @@ fun MainScreen(
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars)
                 ) {
-                    // Mini Player
-                    if (playerState.currentSong != null) {
+                    // Mini Player with smooth enter/exit animation
+                    AnimatedVisibility(
+                        visible = playerState.currentSong != null,
+                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(tween(250)),
+                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(200))
+                    ) {
                         MiniPlayer(
                             song = playerState.currentSong,
                             isPlaying = playerState.isPlaying,
@@ -319,68 +451,99 @@ fun MainScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                when (selectedTab) {
-                    0 -> SongsScreen(
-                        songs = songs,
-                        currentSong = playerState.currentSong,
-                        isPlaying = playerState.isPlaying,
-                        favoriteIds = favoriteIds,
-                        onSongClick = { song -> viewModel.playSong(song, songs) },
-                        onShuffleAllClick = {
-                            if (songs.isNotEmpty()) {
-                                val shuffled = songs.shuffled()
-                                viewModel.playSong(shuffled.first(), shuffled)
-                            }
-                        },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        onAddToPlaylist = { songToAddToPlaylist = it },
-                        onLoadDemoTracks = { viewModel.loadDemoTracks() }
-                    )
-                    1 -> AlbumsScreen(
-                        albums = albums,
-                        currentSong = playerState.currentSong,
-                        isPlaying = playerState.isPlaying,
-                        favoriteIds = favoriteIds,
-                        onSongClick = { song, albumSongs -> viewModel.playSong(song, albumSongs) },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        onAddToPlaylist = { songToAddToPlaylist = it }
-                    )
-                    2 -> ArtistsScreen(
-                        artists = artists,
-                        currentSong = playerState.currentSong,
-                        isPlaying = playerState.isPlaying,
-                        favoriteIds = favoriteIds,
-                        onSongClick = { song, artistSongs -> viewModel.playSong(song, artistSongs) },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        onAddToPlaylist = { songToAddToPlaylist = it }
-                    )
-                    3 -> FavoritesScreen(
-                        favorites = favorites,
-                        currentSong = playerState.currentSong,
-                        isPlaying = playerState.isPlaying,
-                        favoriteIds = favoriteIds,
-                        onSongClick = { song, favSongs -> viewModel.playSong(song, favSongs) },
-                        onPlayAllClick = {
-                            if (favorites.isNotEmpty()) {
-                                viewModel.playSong(favorites.first(), favorites)
-                            }
-                        },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        onAddToPlaylist = { songToAddToPlaylist = it }
-                    )
-                    4 -> PlaylistsScreen(
-                        playlists = playlists,
-                        currentSong = playerState.currentSong,
-                        isPlaying = playerState.isPlaying,
-                        favoriteIds = favoriteIds,
-                        onCreatePlaylist = { viewModel.createPlaylist(it) },
-                        onRenamePlaylist = { id, name -> viewModel.renamePlaylist(id, name) },
-                        onDeletePlaylist = { viewModel.deletePlaylist(it) },
-                        onSongClick = { song, pSongs -> viewModel.playSong(song, pSongs) },
-                        onToggleFavorite = { viewModel.toggleFavorite(it) },
-                        onRemoveSongFromPlaylist = { pId, sId -> viewModel.removeSongFromPlaylist(pId, sId) },
-                        getPlaylistSongs = { viewModel.getSongsForPlaylist(it) }
-                    )
+                AnimatedContent(
+                    targetState = selectedTab,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInHorizontally(
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+                                initialOffsetX = { fullWidth -> (fullWidth * 0.35f).toInt() }
+                            ) + fadeIn(tween(240))) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = tween(200),
+                                targetOffsetX = { fullWidth -> (-fullWidth * 0.35f).toInt() }
+                            ) + fadeOut(tween(180)))
+                        } else {
+                            (slideInHorizontally(
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+                                initialOffsetX = { fullWidth -> (-fullWidth * 0.35f).toInt() }
+                            ) + fadeIn(tween(240))) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = tween(200),
+                                targetOffsetX = { fullWidth -> (fullWidth * 0.35f).toInt() }
+                            ) + fadeOut(tween(180)))
+                        }
+                    },
+                    label = "tab_screens_transition"
+                ) { targetTab ->
+                    when (targetTab) {
+                        0 -> SongsScreen(
+                            songs = songs,
+                            currentSong = playerState.currentSong,
+                            isPlaying = playerState.isPlaying,
+                            favoriteIds = favoriteIds,
+                            onSongClick = { song -> viewModel.playSong(song, songs) },
+                            onShuffleAllClick = {
+                                if (songs.isNotEmpty()) {
+                                    val shuffled = songs.shuffled()
+                                    viewModel.playSong(shuffled.first(), shuffled)
+                                }
+                            },
+                            onToggleFavorite = { viewModel.toggleFavorite(it) },
+                            onAddToPlaylist = { songToAddToPlaylist = it },
+                            onRescanSongs = { viewModel.loadSongs() },
+                            onImportAudioFiles = { audioPickerLauncher.launch(arrayOf("audio/*")) },
+                            onEditSongInfo = { songToEditInfo = it },
+                            onEditLyrics = { songToEditLyrics = it }
+                        )
+                        1 -> AlbumsScreen(
+                            albums = albums,
+                            currentSong = playerState.currentSong,
+                            isPlaying = playerState.isPlaying,
+                            favoriteIds = favoriteIds,
+                            onSongClick = { song, albumSongs -> viewModel.playSong(song, albumSongs) },
+                            onToggleFavorite = { viewModel.toggleFavorite(it) },
+                            onAddToPlaylist = { songToAddToPlaylist = it }
+                        )
+                        2 -> ArtistsScreen(
+                            artists = artists,
+                            currentSong = playerState.currentSong,
+                            isPlaying = playerState.isPlaying,
+                            favoriteIds = favoriteIds,
+                            onSongClick = { song, artistSongs -> viewModel.playSong(song, artistSongs) },
+                            onToggleFavorite = { viewModel.toggleFavorite(it) },
+                            onAddToPlaylist = { songToAddToPlaylist = it }
+                        )
+                        3 -> FavoritesScreen(
+                            favorites = favorites,
+                            currentSong = playerState.currentSong,
+                            isPlaying = playerState.isPlaying,
+                            favoriteIds = favoriteIds,
+                            onSongClick = { song, favSongs -> viewModel.playSong(song, favSongs) },
+                            onPlayAllClick = {
+                                if (favorites.isNotEmpty()) {
+                                    viewModel.playSong(favorites.first(), favorites)
+                                }
+                            },
+                            onToggleFavorite = { viewModel.toggleFavorite(it) },
+                            onAddToPlaylist = { songToAddToPlaylist = it },
+                            onEditSongInfo = { songToEditInfo = it },
+                            onEditLyrics = { songToEditLyrics = it }
+                        )
+                        4 -> PlaylistsScreen(
+                            playlists = playlists,
+                            currentSong = playerState.currentSong,
+                            isPlaying = playerState.isPlaying,
+                            favoriteIds = favoriteIds,
+                            onCreatePlaylist = { viewModel.createPlaylist(it) },
+                            onRenamePlaylist = { id, name -> viewModel.renamePlaylist(id, name) },
+                            onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                            onSongClick = { song, pSongs -> viewModel.playSong(song, pSongs) },
+                            onToggleFavorite = { viewModel.toggleFavorite(it) },
+                            onRemoveSongFromPlaylist = { pId, sId -> viewModel.removeSongFromPlaylist(pId, sId) },
+                            getPlaylistSongs = { viewModel.getSongsForPlaylist(it) }
+                        )
+                    }
                 }
             }
         }
@@ -395,13 +558,17 @@ fun MainScreen(
                 onNext = { viewModel.playNext() },
                 onPrevious = { viewModel.playPrevious() },
                 onSeekTo = { viewModel.seekTo(it) },
+                onSeekBy = { viewModel.seekBy(it) },
                 onToggleShuffle = { viewModel.toggleShuffle() },
                 onCycleRepeat = { viewModel.cycleRepeatMode() },
                 onToggleFavorite = { viewModel.toggleFavorite(playerState.currentSong!!) },
                 onOpenSleepTimer = { showSleepTimerDialog = true },
                 onOpenAddToPlaylist = { songToAddToPlaylist = playerState.currentSong },
                 onOpenQueue = { showQueueDialog = true },
-                onDismiss = { showFullPlayer = false }
+                onDismiss = { showFullPlayer = false },
+                lyricsText = currentSongLyrics,
+                onOpenLyricsEditor = { songToEditLyrics = playerState.currentSong },
+                onOpenSongInfoEditor = { songToEditInfo = playerState.currentSong }
             )
         }
 
@@ -451,6 +618,42 @@ fun MainScreen(
                     showCreatePlaylistForSong = false
                 },
                 onDismiss = { showCreatePlaylistForSong = false }
+            )
+        }
+
+        // Edit Song Metadata / ID3 Info Dialog
+        songToEditInfo?.let { song ->
+            EditSongInfoDialog(
+                song = song,
+                onSave = { title, artist, album, artworkUri ->
+                    viewModel.updateSongMetadata(song.id, title, artist, album, artworkUri)
+                    songToEditInfo = null
+                },
+                onReset = {
+                    viewModel.deleteSongCustomMetadata(song.id)
+                    songToEditInfo = null
+                },
+                onDismiss = { songToEditInfo = null }
+            )
+        }
+
+        // Edit Lyrics Dialog
+        songToEditLyrics?.let { song ->
+            val editingLyrics by produceState(initialValue = "", key1 = song.id) {
+                viewModel.getLyricsForSong(song.id).collect { value = it?.lyricsText ?: "" }
+            }
+            EditLyricsDialog(
+                song = song,
+                initialLyrics = editingLyrics,
+                onSave = { lyrics ->
+                    viewModel.saveLyricsForSong(song.id, lyrics)
+                    songToEditLyrics = null
+                },
+                onDelete = {
+                    viewModel.deleteLyricsForSong(song.id)
+                    songToEditLyrics = null
+                },
+                onDismiss = { songToEditLyrics = null }
             )
         }
     }

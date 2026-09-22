@@ -13,13 +13,21 @@ import com.example.data.local.PreferencesManager
 import com.example.data.local.entity.FavoriteEntity
 import com.example.data.local.entity.PlaylistEntity
 import com.example.data.local.entity.PlaylistSongEntity
+import com.example.data.local.entity.SongCustomMetadataEntity
+import com.example.data.local.entity.SongLyricsEntity
 import com.example.data.repository.SongRepository
 import com.example.domain.model.Album
+import com.example.domain.model.AppSettings
+import com.example.domain.model.AppThemeMode
 import com.example.domain.model.Artist
+import com.example.domain.model.ColorPreset
+import com.example.domain.model.CornerPreset
+import com.example.domain.model.FontPreset
 import com.example.domain.model.PlayerUiState
 import com.example.domain.model.Playlist
 import com.example.domain.model.RepeatMode
 import com.example.domain.model.Song
+import com.example.domain.model.VisualizerStyle
 import com.example.service.MusicService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,6 +49,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private var musicService: MusicService? = null
     private var isBound = false
 
+    val appSettings: StateFlow<AppSettings> = preferencesManager.appSettings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
+
+    private val _rawSongs = MutableStateFlow<List<Song>>(emptyList())
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs = _songs.asStateFlow()
 
@@ -101,17 +113,19 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         favs.map { it.songId }.toSet()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    // Playlists from Room
-    val playlists: StateFlow<List<Playlist>> = musicDao.getAllPlaylists().combine(musicDao.getAllFavorites()) { plistEntities, _ ->
-        plistEntities.map { entity ->
-            Playlist(
-                id = entity.id,
-                name = entity.name,
-                songCount = 0,
-                createdAt = entity.createdAt
-            )
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Playlists from Room with dynamic song counts
+    val playlists: StateFlow<List<Playlist>> = musicDao.getAllPlaylists()
+        .combine(musicDao.getAllPlaylistSongs()) { plistEntities, allSongs ->
+            val countMap = allSongs.groupingBy { it.playlistId }.eachCount()
+            plistEntities.map { entity ->
+                Playlist(
+                    id = entity.id,
+                    name = entity.name,
+                    songCount = countMap[entity.id] ?: 0,
+                    createdAt = entity.createdAt
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -131,16 +145,63 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     init {
         bindMusicService()
         loadSongs()
+        observeCustomMetadata()
+        observeCrossfadeSettings()
+    }
+
+    private fun observeCrossfadeSettings() {
+        viewModelScope.launch {
+            appSettings.collect { settings ->
+                musicService?.crossfadeSeconds = settings.crossfadeSeconds
+            }
+        }
+    }
+
+    private fun observeCustomMetadata() {
+        viewModelScope.launch {
+            combine(_rawSongs, musicDao.getAllCustomMetadata()) { raw, customList ->
+                val metaMap = customList.associateBy { it.songId }
+                raw.map { song ->
+                    val custom = metaMap[song.id]
+                    if (custom != null) {
+                        song.copy(
+                            title = if (custom.customTitle.isNotBlank()) custom.customTitle else song.title,
+                            artist = if (custom.customArtist.isNotBlank()) custom.customArtist else song.artist,
+                            album = if (custom.customAlbum.isNotBlank()) custom.customAlbum else song.album,
+                            albumArtUri = custom.customArtworkUri ?: song.albumArtUri
+                        )
+                    } else {
+                        song
+                    }
+                }
+            }.collect { merged ->
+                _songs.value = merged
+                // Also update current song in player if it's currently displayed
+                val current = _playerUiState.value.currentSong
+                if (current != null) {
+                    val updated = merged.find { it.id == current.id }
+                    if (updated != null && updated != current) {
+                        _playerUiState.value = _playerUiState.value.copy(currentSong = updated)
+                    }
+                }
+            }
+        }
     }
 
     private fun bindMusicService() {
         val intent = Intent(context, MusicService::class.java)
-        context.startService(intent)
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        try {
+            // Start service so it remains active in background even when Activity is backgrounded
+            context.startService(intent)
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun observeServiceState() {
         val service = musicService ?: return
+        service.crossfadeSeconds = appSettings.value.crossfadeSeconds
         viewModelScope.launch {
             service.playerUiState.collect { state ->
                 _playerUiState.value = state
@@ -175,19 +236,27 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoadingSongs.value = true
             val deviceSongs = songRepository.getSongsFromDevice()
-            if (deviceSongs.isNotEmpty()) {
-                _songs.value = deviceSongs
-            } else {
-                // If device has no songs, provide sample tracks so user can test the player right away
-                _songs.value = songRepository.demoSongs
-            }
+            _rawSongs.value = deviceSongs
             _isLoadingSongs.value = false
             restoreLastPlayedState()
         }
     }
 
-    fun loadDemoTracks() {
-        _songs.value = songRepository.demoSongs
+    fun importAudioUris(uris: List<android.net.Uri>) {
+        viewModelScope.launch {
+            _isLoadingSongs.value = true
+            val imported = songRepository.getSongsFromUris(uris)
+            if (imported.isNotEmpty()) {
+                val current = _rawSongs.value.toMutableList()
+                for (song in imported) {
+                    if (current.none { it.id == song.id || it.contentUri == song.contentUri }) {
+                        current.add(song)
+                    }
+                }
+                _rawSongs.value = current
+            }
+            _isLoadingSongs.value = false
+        }
     }
 
     fun onSearchQueryChanged(query: String) {
@@ -220,6 +289,21 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     fun seekTo(positionMs: Long) {
         musicService?.seekTo(positionMs)
+    }
+
+    fun seekBy(offsetMs: Long) {
+        if (musicService != null) {
+            musicService?.seekBy(offsetMs)
+        } else {
+            val cur = _playerUiState.value.currentPosition
+            val dur = _playerUiState.value.duration
+            val target = if (dur > 0) {
+                (cur + offsetMs).coerceIn(0L, dur)
+            } else {
+                (cur + offsetMs).coerceAtLeast(0L)
+            }
+            seekTo(target)
+        }
     }
 
     fun toggleShuffle() {
@@ -326,6 +410,140 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             .combine(_searchQuery) { entities, _ ->
                 entities.map { it.toSong() }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+
+    fun updateThemeMode(mode: AppThemeMode) {
+        viewModelScope.launch {
+            preferencesManager.updateThemeMode(mode)
+        }
+    }
+
+    fun updateColorPreset(preset: ColorPreset) {
+        viewModelScope.launch {
+            preferencesManager.updateColorPreset(preset)
+        }
+    }
+
+    fun updateCustomPrimaryColor(colorLong: Long) {
+        viewModelScope.launch {
+            preferencesManager.updateCustomPrimaryColor(colorLong)
+        }
+    }
+
+    fun updateFontPreset(preset: FontPreset) {
+        viewModelScope.launch {
+            preferencesManager.updateFontPreset(preset)
+        }
+    }
+
+    fun updateLanguageCode(langCode: String) {
+        viewModelScope.launch {
+            preferencesManager.updateLanguageCode(langCode)
+        }
+    }
+
+    fun updateCornerPreset(preset: CornerPreset) {
+        viewModelScope.launch {
+            preferencesManager.updateCornerPreset(preset)
+        }
+    }
+
+    fun updateVisualizerStyle(style: VisualizerStyle) {
+        viewModelScope.launch {
+            preferencesManager.updateVisualizerStyle(style)
+        }
+    }
+
+    fun updateNeonGlow(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.updateNeonGlow(enabled)
+        }
+    }
+
+    fun updateBackgroundBlur(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.updateBackgroundBlur(enabled)
+        }
+    }
+
+    fun updateFontScale(scale: Float) {
+        viewModelScope.launch {
+            preferencesManager.updateFontScale(scale)
+        }
+    }
+
+    fun importCustomTtfFont(uri: android.net.Uri, fileName: String?, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val result = preferencesManager.importCustomTtfFont(uri, fileName)
+            onResult(result.isSuccess)
+        }
+    }
+
+    fun removeCustomTtfFont() {
+        viewModelScope.launch {
+            preferencesManager.removeCustomTtfFont()
+        }
+    }
+
+    fun updateCrossfadeSeconds(seconds: Int) {
+        viewModelScope.launch {
+            preferencesManager.updateCrossfadeSeconds(seconds)
+            musicService?.crossfadeSeconds = seconds
+        }
+    }
+
+    // --- Song Metadata Customization (Tag Editor) ---
+    fun updateSongMetadata(
+        songId: Long,
+        title: String,
+        artist: String,
+        album: String,
+        artworkUri: String? = null
+    ) {
+        viewModelScope.launch {
+            val entity = SongCustomMetadataEntity(
+                songId = songId,
+                customTitle = title.trim(),
+                customArtist = artist.trim(),
+                customAlbum = album.trim(),
+                customArtworkUri = artworkUri
+            )
+            musicDao.upsertCustomMetadata(entity)
+        }
+    }
+
+    fun deleteSongCustomMetadata(songId: Long) {
+        viewModelScope.launch {
+            musicDao.deleteCustomMetadata(songId)
+        }
+    }
+
+    // --- Song Lyrics ---
+    fun getLyricsForSong(songId: Long): kotlinx.coroutines.flow.Flow<SongLyricsEntity?> {
+        return musicDao.getLyricsForSong(songId)
+    }
+
+    fun saveLyricsForSong(songId: Long, lyricsText: String, isSynced: Boolean = false) {
+        viewModelScope.launch {
+            val entity = SongLyricsEntity(
+                songId = songId,
+                lyricsText = lyricsText.trim(),
+                isSynced = isSynced
+            )
+            musicDao.upsertLyrics(entity)
+        }
+    }
+
+    fun deleteLyricsForSong(songId: Long) {
+        viewModelScope.launch {
+            musicDao.deleteLyrics(songId)
+        }
+    }
+
+    fun resetCustomizationsToDefault() {
+        viewModelScope.launch {
+            preferencesManager.resetCustomizationsToDefault()
+        }
     }
 
     override fun onCleared() {

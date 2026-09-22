@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,7 +33,8 @@ import com.example.R
 @Composable
 fun PermissionScreen(
     onRequestPermission: () -> Unit,
-    onUseDemoTracks: () -> Unit,
+    onOpenAppSettings: () -> Unit,
+    onImportAudioFiles: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -95,13 +98,37 @@ fun PermissionScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedButton(
-                    onClick = onUseDemoTracks,
+                    onClick = onImportAudioFiles,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("use_demo_tracks_button"),
+                        .testTag("import_audio_files_button"),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(text = stringResource(R.string.load_demo_tracks))
+                    Icon(
+                        imageVector = Icons.Outlined.FileOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = stringResource(R.string.import_audio))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = onOpenAppSettings,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("open_settings_button"),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = stringResource(R.string.open_settings))
                 }
             }
         }

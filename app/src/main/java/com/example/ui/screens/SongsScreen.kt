@@ -15,12 +15,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicOff
+import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,8 +47,11 @@ fun SongsScreen(
     onShuffleAllClick: () -> Unit,
     onToggleFavorite: (Song) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onLoadDemoTracks: () -> Unit,
-    modifier: Modifier = Modifier
+    onRescanSongs: () -> Unit,
+    onImportAudioFiles: () -> Unit,
+    modifier: Modifier = Modifier,
+    onEditSongInfo: ((Song) -> Unit)? = null,
+    onEditLyrics: ((Song) -> Unit)? = null
 ) {
     if (songs.isEmpty()) {
         Box(
@@ -59,9 +65,9 @@ fun SongsScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.MusicOff,
+                    imageVector = Icons.Default.LibraryMusic,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(64.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -77,13 +83,33 @@ fun SongsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 Button(
-                    onClick = onLoadDemoTracks,
+                    onClick = onRescanSongs,
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.testTag("songs_screen_load_demo_button")
+                    modifier = Modifier.testTag("songs_screen_rescan_button")
                 ) {
-                    Text(stringResource(R.string.load_demo_tracks))
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(stringResource(R.string.rescan_library))
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = onImportAudioFiles,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.testTag("songs_screen_import_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FileOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(stringResource(R.string.import_audio))
                 }
             }
         }
@@ -132,7 +158,10 @@ fun SongsScreen(
                     isFavorite = favoriteIds.contains(song.id),
                     onSongClick = { onSongClick(song) },
                     onToggleFavorite = { onToggleFavorite(song) },
-                    onAddToPlaylist = { onAddToPlaylist(song) }
+                    onAddToPlaylist = { onAddToPlaylist(song) },
+                    onEditSongInfo = if (onEditSongInfo != null) { { onEditSongInfo(song) } } else null,
+                    onEditLyrics = if (onEditLyrics != null) { { onEditLyrics(song) } } else null,
+                    modifier = Modifier.animateItem()
                 )
             }
         }

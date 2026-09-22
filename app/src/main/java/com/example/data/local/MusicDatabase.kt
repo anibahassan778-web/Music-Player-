@@ -8,14 +8,18 @@ import com.example.data.local.dao.MusicDao
 import com.example.data.local.entity.FavoriteEntity
 import com.example.data.local.entity.PlaylistEntity
 import com.example.data.local.entity.PlaylistSongEntity
+import com.example.data.local.entity.SongCustomMetadataEntity
+import com.example.data.local.entity.SongLyricsEntity
 
 @Database(
     entities = [
         FavoriteEntity::class,
         PlaylistEntity::class,
-        PlaylistSongEntity::class
+        PlaylistSongEntity::class,
+        SongCustomMetadataEntity::class,
+        SongLyricsEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {

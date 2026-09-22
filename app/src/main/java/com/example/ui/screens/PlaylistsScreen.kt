@@ -178,6 +178,12 @@ fun PlaylistsScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
+                                Text(
+                                    text = stringResource(R.string.songs_count, playlist.songCount),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
                             }
 
                             Box {
@@ -321,7 +327,9 @@ fun PlaylistsScreen(
                                     isFavorite = favoriteIds.contains(song.id),
                                     onSongClick = { onSongClick(song, playlistSongs) },
                                     onToggleFavorite = { onToggleFavorite(song) },
-                                    onAddToPlaylist = { onRemoveSongFromPlaylist(playlist.id, song.id) }
+                                    onAddToPlaylist = { onRemoveSongFromPlaylist(playlist.id, song.id) },
+                                    menuActionText = stringResource(R.string.delete),
+                                    menuActionIcon = Icons.Default.Delete
                                 )
                             }
                         }

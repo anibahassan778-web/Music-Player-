@@ -2,6 +2,8 @@ package com.example.data.repository
 
 import android.content.ContentUris
 import android.content.Context
+import android.database.Cursor
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -12,56 +14,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class SongRepository(private val context: Context) {
-
-    // Default sample tracks (high quality royalty-free public domain / creative commons audio)
-    // Used if storage is empty or user requests demo tracks
-    val demoSongs: List<Song> = listOf(
-        Song(
-            id = -101L,
-            title = "Acoustic Breeze",
-            artist = "Benjamin Tissot",
-            album = "Acoustic Dreams",
-            duration = 158000L,
-            contentUri = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-            albumArtUri = null
-        ),
-        Song(
-            id = -102L,
-            title = "Sunny Horizon",
-            artist = "SoundHelix Project",
-            album = "Electronic Journeys",
-            duration = 185000L,
-            contentUri = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-            albumArtUri = null
-        ),
-        Song(
-            id = -103L,
-            title = "Midnight Melody",
-            artist = "Creative Sounds",
-            album = "Nocturne Vibes",
-            duration = 172000L,
-            contentUri = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-            albumArtUri = null
-        ),
-        Song(
-            id = -104L,
-            title = "Desert Caravan",
-            artist = "Orient Ensemble",
-            album = "Eastern Melodies",
-            duration = 210000L,
-            contentUri = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-            albumArtUri = null
-        ),
-        Song(
-            id = -105L,
-            title = "Chillwave Groove",
-            artist = "SoundHelix Project",
-            album = "Electronic Journeys",
-            duration = 198000L,
-            contentUri = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-            albumArtUri = null
-        )
-    )
 
     suspend fun getSongsFromDevice(): List<Song> = withContext(Dispatchers.IO) {
         val songList = mutableListOf<Song>()
@@ -81,7 +33,7 @@ class SongRepository(private val context: Context) {
             MediaStore.Audio.Media.DATA
         )
 
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 5000"
+        val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.MIME_TYPE} LIKE 'audio/%') AND ${MediaStore.Audio.Media.DURATION} >= 1000"
         val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
 
         try {
@@ -92,52 +44,120 @@ class SongRepository(private val context: Context) {
                 null,
                 sortOrder
             )?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-                val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-                val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-                val dataColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
-
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val title = cursor.getString(titleColumn) ?: "Unknown Track"
-                    val artist = cursor.getString(artistColumn) ?: "Unknown Artist"
-                    val album = cursor.getString(albumColumn) ?: "Unknown Album"
-                    val duration = cursor.getLong(durationColumn)
-                    val albumId = cursor.getLong(albumIdColumn)
-                    val data = if (dataColumn >= 0) cursor.getString(dataColumn) ?: "" else ""
-
-                    val contentUri = ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                        id
-                    ).toString()
-
-                    val albumArtUri = ContentUris.withAppendedId(
-                        Uri.parse("content://media/external/audio/albumart"),
-                        albumId
-                    ).toString()
-
-                    songList.add(
-                        Song(
-                            id = id,
-                            title = title,
-                            artist = artist,
-                            album = album,
-                            duration = duration,
-                            contentUri = contentUri,
-                            albumArtUri = albumArtUri,
-                            data = data
-                        )
-                    )
-                }
+                parseSongsFromCursor(cursor, songList)
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
+        // Fallback: If no songs found with the filter, try without selection filter
+        if (songList.isEmpty()) {
+            try {
+                context.contentResolver.query(
+                    collection,
+                    projection,
+                    null,
+                    null,
+                    sortOrder
+                )?.use { cursor ->
+                    parseSongsFromCursor(cursor, songList)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         songList
+    }
+
+    private fun parseSongsFromCursor(cursor: Cursor, outList: MutableList<Song>) {
+        val idColumn = cursor.getColumnIndex(MediaStore.Audio.Media._ID)
+        val titleColumn = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)
+        val artistColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)
+        val albumColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM)
+        val durationColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
+        val albumIdColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)
+        val dataColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
+
+        while (cursor.moveToNext()) {
+            val id = if (idColumn >= 0) cursor.getLong(idColumn) else System.currentTimeMillis()
+            val rawTitle = if (titleColumn >= 0) cursor.getString(titleColumn) else null
+            val rawArtist = if (artistColumn >= 0) cursor.getString(artistColumn) else null
+            val rawAlbum = if (albumColumn >= 0) cursor.getString(albumColumn) else null
+            val duration = if (durationColumn >= 0) cursor.getLong(durationColumn) else 0L
+            val albumId = if (albumIdColumn >= 0) cursor.getLong(albumIdColumn) else -1L
+            val data = if (dataColumn >= 0) cursor.getString(dataColumn) ?: "" else ""
+
+            val title = if (!rawTitle.isNullOrBlank()) rawTitle else {
+                data.substringAfterLast('/').substringBeforeLast('.').ifBlank { "Audio Track" }
+            }
+            val artist = if (!rawArtist.isNullOrBlank() && rawArtist != "<unknown>") rawArtist else "Unknown Artist"
+            val album = if (!rawAlbum.isNullOrBlank() && rawAlbum != "<unknown>") rawAlbum else "Unknown Album"
+
+            val contentUri = ContentUris.withAppendedId(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                id
+            ).toString()
+
+            val albumArtUri = if (albumId >= 0) {
+                ContentUris.withAppendedId(
+                    Uri.parse("content://media/external/audio/albumart"),
+                    albumId
+                ).toString()
+            } else null
+
+            outList.add(
+                Song(
+                    id = id,
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    duration = duration,
+                    contentUri = contentUri,
+                    albumArtUri = albumArtUri,
+                    data = data
+                )
+            )
+        }
+    }
+
+    suspend fun getSongsFromUris(uris: List<Uri>): List<Song> = withContext(Dispatchers.IO) {
+        val importedSongs = mutableListOf<Song>()
+        for (uri in uris) {
+            try {
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(context, uri)
+                val rawTitle = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                val rawArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                val rawAlbum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                val duration = durationStr?.toLongOrNull() ?: 0L
+                retriever.release()
+
+                val fallbackName = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')
+                val title = if (!rawTitle.isNullOrBlank()) rawTitle else fallbackName ?: "Imported Track"
+                val artist = if (!rawArtist.isNullOrBlank()) rawArtist else "Local Audio"
+                val album = if (!rawAlbum.isNullOrBlank()) rawAlbum else "Imported"
+
+                val id = (uri.toString().hashCode().toLong() and 0x7FFFFFFFFFFFFFFFL)
+
+                importedSongs.add(
+                    Song(
+                        id = id,
+                        title = title,
+                        artist = artist,
+                        album = album,
+                        duration = duration,
+                        contentUri = uri.toString(),
+                        albumArtUri = null,
+                        data = uri.toString()
+                    )
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        importedSongs
     }
 
     fun groupSongsByAlbum(songs: List<Song>): List<Album> {

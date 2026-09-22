@@ -48,14 +48,131 @@
     <string name="favorites_empty">لا توجد أغانٍ مفضلة بعد</string>
     <string name="playlists_empty">لم يتم إنشاء أي قائمة تشغيل بعد</string>
     <string name="songs_count">%1$d أغنية</string>
-    <string name="empty_songs_title">لم يتم العثور على موسيقى</string>
-    <string name="empty_songs_desc">انسخ ملفات MP3 إلى ذاكرة جهازك أو حمّل المقاطع التجريبية لتجربة المشغل الآن.</string>
-    <string name="load_demo_tracks">تحميل مقاطع تجريبية</string>
+    <string name="empty_songs_title">لا توجد أغانٍ في جهازك</string>
+    <string name="empty_songs_desc">لم يتم العثور على ملفات صوتية في ذاكرة الهاتف. تأكد من وجود ملفاتك الصوتية واضغط على إعادة الفحص.</string>
+    <string name="rescan_library">إعادة فحص الذاكرة</string>
+    <string name="import_audio">استيراد ملفات صوتية</string>
+    <string name="library_section">مكتبة الموسيقى</string>
+    <string name="library_detected_songs">تم العثور على %1$d مقطع صوتي</string>
 
+    <string name="replay_10">إرجاع 10 ثوانٍ</string>
+    <string name="forward_10">تقديم 10 ثوانٍ</string>
+    <string name="high_fidelity_audio">صوت عالي الدقة HD</string>
     <string name="permission_title">مطلوب إذن الوصول إلى الوسائط</string>
     <string name="permission_desc">يحتاج مشغل الموسيقى إذن الوصول إلى الملفات الصوتية في ذاكرة جهازك لتشغيل أغانيك.</string>
     <string name="grant_permission">منح الإذن</string>
     <string name="open_settings">فتح الإعدادات</string>
     <string name="playback_channel_name">تشغيل الموسيقى</string>
     <string name="playback_channel_desc">إشعار التحكم في تشغيل الموسيقى</string>
+
+    <!-- Settings & Customization Arabic Strings -->
+    <string name="settings">الإعدادات والتخصيص</string>
+    <string name="settings_appearance">المظهر والألوان</string>
+    <string name="settings_theme_mode">وضع المظهر</string>
+    <string name="theme_system">تلقائي (حسب النظام)</string>
+    <string name="theme_dark">داكن (Dark Mode)</string>
+    <string name="theme_light">فاتح (Light Mode)</string>
+    <string name="theme_amoled">أسود فاحم (AMOLED Pure Black)</string>
+    <string name="settings_color_palette">لوحة الألوان الرئيسية</string>
+    <string name="color_sky_blue">أزرق فاتح / سماوي (Sky Blue)</string>
+    <string name="color_cyan">سماوي نيون (Cyan)</string>
+    <string name="color_indigo">نيلي أنيق (Indigo)</string>
+    <string name="color_sunset">غروب برتقالي (Sunset)</string>
+    <string name="color_emerald">زمردي مشرق (Emerald)</string>
+    <string name="color_violet">بنفسجي كهربائي (Violet)</string>
+    <string name="color_crimson">أحمر ياقوتي (Crimson)</string>
+    <string name="color_rose_gold">وردي ذهبي (Rose Gold)</string>
+    <string name="color_dynamic">ديناميكي Material You</string>
+    <string name="color_custom">لون مخصص</string>
+    <string name="pick_custom_color">اختر لون التطبيق</string>
+
+    <string name="settings_typography">الخطوط والطباعة</string>
+    <string name="settings_font_family">نوع الخط</string>
+    <string name="font_system">افتراضي النظام</string>
+    <string name="font_cairo">خط كايرو (Cairo الأصيل)</string>
+    <string name="font_poppins">خط بوبينز (Poppins الحديث)</string>
+    <string name="font_serif">كلاسيكي أنيق (Serif)</string>
+    <string name="font_monospace">أحادي المسافة (Monospace)</string>
+    <string name="font_custom_ttf">خط مخصص مرفوع (.TTF)</string>
+    <string name="upload_custom_font">رفع خط مخصص (.ttf)</string>
+    <string name="upload_font_desc">اختر أي ملف خط بصيغة .ttf من هاتفك لتطبيقه على كافة أرجاء التطبيق فوراً وبدون إعادة تشغيل.</string>
+    <string name="font_uploaded_success">تم تحميل الخط المخصص وتطبيقه بنجاح!</string>
+    <string name="font_uploaded_error">تعذر تحميل الخط، يرجى التأكد من اختيار ملف بصيغة .ttf صالحة.</string>
+    <string name="remove_custom_font">حذف الخط المرفوع</string>
+    <string name="current_custom_font">الخط المرفوع الحالي: %1$s</string>
+    <string name="font_size_scale">مقياس حجم الخط</string>
+    <string name="font_preview_sample">الموسيقى لغة تعبر عما لا يمكن قوله ولا يمكن السكوت عنه. 1234567890\nMusic is the universal language of mankind.</string>
+
+    <string name="settings_language">لغة التطبيق</string>
+    <string name="lang_system">تلقائي (لغة النظام)</string>
+    <string name="lang_arabic">العربية (Arabic)</string>
+    <string name="lang_english">English (الإنجليزية)</string>
+    <string name="lang_french">Français (الفرنسية)</string>
+
+    <string name="settings_ui_style">شكل الزوايا والحواف</string>
+    <string name="corner_extra_rounded">حواف دائرية عصرية (24dp)</string>
+    <string name="corner_standard">حواف متوازنة قياسية (16dp)</string>
+    <string name="corner_sharp">حواف حادة أنيقة (6dp)</string>
+
+    <string name="settings_visualizer">التأثيرات والمشغل</string>
+    <string name="visualizer_type">نمط طيف الصوت (Visualizer)</string>
+    <string name="visualizer_bars">أعمدة موازنة كلاسيكية</string>
+    <string name="visualizer_wave">موجات متدفقة</string>
+    <string name="visualizer_pulse">نبضات طاقة متوهجة</string>
+    <string name="visualizer_glow">طيف نيون مشع</string>
+    <string name="neon_ambient_glow">التوهج النيوني المحيط (Ambient Glow)</string>
+    <string name="neon_glow_desc">إضاءة حيوية نابضة خلف غلاف الألبوم وعناصر التحكم</string>
+    <string name="player_blur_effect">الخلفية الزجاجية الضبابية (Glassmorphism)</string>
+    <string name="player_blur_desc">تأثير زجاجي شفاف متناغم مع ألوان الأغنية المشغلة</string>
+
+    <string name="settings_reset">استعادة الإعدادات الافتراضية</string>
+    <string name="reset_confirm_title">استعادة المظهر الافتراضي؟</string>
+    <string name="reset_confirm_desc">سيتم إعادة تعيين الألوان والخطوط والأشكال إلى الخيارات الافتراضية للتطبيق.</string>
+    <string name="reset">إعادة ضبط</string>
+    <string name="apply">تطبيق</string>
+    <string name="about_app_title">حول التطبيق</string>
+    <string name="about_app_desc">مشغل صوتي متطور عالي الدقة يعمل بالكامل بدون إنترنت، يدعم التخصيص الكامل للخطوط واللغات، والتحكم الفوري من الإشعارات وشاشة القفل والساعات الذكية.</string>
+    <string name="about_app_version_label">الإصدار</string>
+    <string name="about_app_version_value">1.0.0 (النسخة المستقرة)</string>
+    <string name="about_badge_offline">بدون إنترنت 100%</string>
+    <string name="about_badge_media3">محرك Media3 الحديث</string>
+    <string name="about_badge_privacy">حماية تامة للخصوصية</string>
+    <string name="about_badge_battery">توفير فائق للبطارية</string>
+    <string name="about_developer">تم التطوير والتصميم بعناية وإتقان</string>
+    <string name="app_version_info">مشغل الموسيقى v1.0 • تصميم عصري ومخصص</string>
+
+    <!-- Widget & Playback Strings -->
+    <string name="no_song_playing">لا يوجد مقطع مشغل حالياً</string>
+    <string name="previous_track">المقطع السابق</string>
+    <string name="next_track">المقطع التالي</string>
+    <string name="play_pause">تشغيل أو إيقاف مؤقت</string>
+    <string name="album_art">غلاف الألبوم</string>
+
+    <!-- Crossfade Strings -->
+    <string name="settings_crossfade_title">التلاشي التدريجي (Crossfade)</string>
+    <string name="settings_crossfade_desc">انتقال صوتي ناعم ومتلاشي بين الأغاني لمنع الفجوات المفاجئة</string>
+    <string name="crossfade_disabled">معطّل (تبديل فوري)</string>
+    <string name="crossfade_seconds_format">%1$d ثوانٍ</string>
+
+    <!-- Song Info Tag Editor Strings -->
+    <string name="edit_song_info">تعديل معلومات الأغنية</string>
+    <string name="save_changes">حفظ التعديلات</string>
+    <string name="change_cover">تغيير الغلاف</string>
+    <string name="song_title">عنوان الأغنية</string>
+    <string name="artist_name">اسم الفنان</string>
+    <string name="album_name">اسم الألبوم</string>
+    <string name="close">إغلاق</string>
+
+    <!-- Lyrics Viewer & Editor Strings -->
+    <string name="lyrics">الكلمات</string>
+    <string name="lyrics_title">كلمات الأغنية</string>
+    <string name="lyrics_empty">لا تتوفر كلمات لهذه الأغنية حتى الآن</string>
+    <string name="add_lyrics">إضافة كلمات</string>
+    <string name="edit_lyrics">تعديل الكلمات</string>
+    <string name="save_lyrics">حفظ الكلمات</string>
+    <string name="lyrics_editor_title">محرر كلمات الأغنية</string>
+    <string name="lyrics_placeholder">اكتب أو الصق كلمات الأغنية هنا...</string>
+    <string name="view_lyrics">عرض الكلمات</string>
+    <string name="show_cover">عرض الغلاف</string>
 </resources>
+

@@ -44,7 +44,9 @@ fun FavoritesScreen(
     onPlayAllClick: () -> Unit,
     onToggleFavorite: (Song) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEditSongInfo: ((Song) -> Unit)? = null,
+    onEditLyrics: ((Song) -> Unit)? = null
 ) {
     if (favorites.isEmpty()) {
         Box(
@@ -117,7 +119,10 @@ fun FavoritesScreen(
                     isFavorite = true,
                     onSongClick = { onSongClick(song, favorites) },
                     onToggleFavorite = { onToggleFavorite(song) },
-                    onAddToPlaylist = { onAddToPlaylist(song) }
+                    onAddToPlaylist = { onAddToPlaylist(song) },
+                    onEditSongInfo = if (onEditSongInfo != null) { { onEditSongInfo(song) } } else null,
+                    onEditLyrics = if (onEditLyrics != null) { { onEditLyrics(song) } } else null,
+                    modifier = Modifier.animateItem()
                 )
             }
         }

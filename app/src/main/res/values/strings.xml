@@ -13,6 +13,9 @@
     <string name="pause">Pause</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
+    <string name="replay_10">Rewind 10 seconds</string>
+    <string name="forward_10">Fast forward 10 seconds</string>
+    <string name="high_fidelity_audio">HD Audio</string>
     <string name="shuffle">Shuffle</string>
     <string name="shuffle_on">Shuffle On</string>
     <string name="shuffle_off">Shuffle Off</string>
@@ -49,8 +52,11 @@
     <string name="playlists_empty">No playlists created yet</string>
     <string name="songs_count">%1$d songs</string>
     <string name="empty_songs_title">No Music Found</string>
-    <string name="empty_songs_desc">Copy audio files to your device storage or load demo tracks to try playback right now.</string>
-    <string name="load_demo_tracks">Load Demo Tracks</string>
+    <string name="empty_songs_desc">No audio tracks detected on this device. Copy your music files to storage or rescan.</string>
+    <string name="rescan_library">Rescan Storage</string>
+    <string name="import_audio">Import Audio Files</string>
+    <string name="library_section">Music Library</string>
+    <string name="library_detected_songs">%1$d audio tracks detected</string>
 
     <string name="permission_title">Storage Permission Required</string>
     <string name="permission_desc">Music Player needs permission to read audio files from your device storage to play your music.</string>
@@ -58,4 +64,115 @@
     <string name="open_settings">Open Settings</string>
     <string name="playback_channel_name">Music Playback</string>
     <string name="playback_channel_desc">Shows playback controls and currently playing song</string>
+
+    <!-- Settings & Customization Strings -->
+    <string name="settings">Settings</string>
+    <string name="settings_appearance">Appearance &amp; Colors</string>
+    <string name="settings_theme_mode">Theme Mode</string>
+    <string name="theme_system">System Default</string>
+    <string name="theme_dark">Dark Mode</string>
+    <string name="theme_light">Light Mode</string>
+    <string name="theme_amoled">AMOLED Pure Black</string>
+    <string name="settings_color_palette">Accent Color Palette</string>
+    <string name="color_sky_blue">Sky Blue (Light Blue)</string>
+    <string name="color_cyan">Neon Cyan</string>
+    <string name="color_indigo">Indigo Modern</string>
+    <string name="color_sunset">Sunset Orange</string>
+    <string name="color_emerald">Emerald Green</string>
+    <string name="color_violet">Electric Violet</string>
+    <string name="color_crimson">Ruby Crimson</string>
+    <string name="color_rose_gold">Rose Gold</string>
+    <string name="color_dynamic">Dynamic Material You</string>
+    <string name="color_custom">Custom Color</string>
+    <string name="pick_custom_color">Choose Accent Color</string>
+
+    <string name="settings_typography">Fonts &amp; Typography</string>
+    <string name="settings_font_family">Font Family</string>
+    <string name="font_system">System Default</string>
+    <string name="font_cairo">Cairo (Arabic &amp; Latin)</string>
+    <string name="font_poppins">Poppins (Modern Sans)</string>
+    <string name="font_serif">Classic Serif</string>
+    <string name="font_monospace">Monospace</string>
+    <string name="font_custom_ttf">Custom .TTF Font</string>
+    <string name="upload_custom_font">Upload Custom Font (.ttf)</string>
+    <string name="upload_font_desc">Select any .ttf font file from your device storage to apply it everywhere in the app.</string>
+    <string name="font_uploaded_success">Custom font loaded successfully!</string>
+    <string name="font_uploaded_error">Could not load font file. Please ensure it is a valid .ttf file.</string>
+    <string name="remove_custom_font">Remove Custom Font</string>
+    <string name="current_custom_font">Active custom font: %1$s</string>
+    <string name="font_size_scale">Font Size Scale</string>
+    <string name="font_preview_sample">Music is the universal language of mankind. 1234567890\nالموسيقى لغة تعبر عما لا يمكن قوله.</string>
+
+    <string name="settings_language">App Language</string>
+    <string name="lang_system">System Default</string>
+    <string name="lang_arabic">العربية (Arabic)</string>
+    <string name="lang_english">English</string>
+    <string name="lang_french">Français (French)</string>
+
+    <string name="settings_ui_style">Corners &amp; UI Shape</string>
+    <string name="corner_extra_rounded">Extra Rounded (24dp)</string>
+    <string name="corner_standard">Standard (16dp)</string>
+    <string name="corner_sharp">Sharp Minimalist (6dp)</string>
+
+    <string name="settings_visualizer">Visualizer &amp; Effects</string>
+    <string name="visualizer_type">Visualizer Style</string>
+    <string name="visualizer_bars">Equalizer Bars</string>
+    <string name="visualizer_wave">Smooth Wave</string>
+    <string name="visualizer_pulse">Energy Pulse</string>
+    <string name="visualizer_glow">Neon Spectrum</string>
+    <string name="neon_ambient_glow">Ambient Neon Glow</string>
+    <string name="neon_glow_desc">Vibrant ambient lighting behind player art and controls</string>
+    <string name="player_blur_effect">Glassmorphism Frosted Blur</string>
+    <string name="player_blur_desc">Frosted glass backdrop adapted to current track art</string>
+
+    <string name="settings_reset">Reset All Customizations</string>
+    <string name="reset_confirm_title">Reset Customizations?</string>
+    <string name="reset_confirm_desc">All colors, fonts, shapes, and visual styles will be restored to their defaults.</string>
+    <string name="reset">Reset</string>
+    <string name="apply">Apply</string>
+    <string name="about_app_title">About App</string>
+    <string name="about_app_desc">High-fidelity modern offline music player with background playback, customizable typography, and full lock screen and smartwatch controls.</string>
+    <string name="about_app_version_label">Version</string>
+    <string name="about_app_version_value">1.0.0 (Stable Release)</string>
+    <string name="about_badge_offline">100% Offline</string>
+    <string name="about_badge_media3">Media3 Hi-Fi</string>
+    <string name="about_badge_privacy">Privacy First</string>
+    <string name="about_badge_battery">Battery Friendly</string>
+    <string name="about_developer">Crafted with precision &amp; care</string>
+    <string name="app_version_info">Music Player v1.0 • Fully Customizable</string>
+
+    <!-- Widget & Playback Strings -->
+    <string name="no_song_playing">No track playing</string>
+    <string name="previous_track">Previous track</string>
+    <string name="next_track">Next track</string>
+    <string name="play_pause">Play or pause</string>
+    <string name="album_art">Album Art</string>
+
+    <!-- Crossfade Strings -->
+    <string name="settings_crossfade_title">Crossfade &amp; Transitions</string>
+    <string name="settings_crossfade_desc">Smooth fading between tracks for seamless gapless playback</string>
+    <string name="crossfade_disabled">Disabled (Instant switch)</string>
+    <string name="crossfade_seconds_format">%1$d seconds</string>
+
+    <!-- Song Info Tag Editor Strings -->
+    <string name="edit_song_info">Edit Song Info</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="change_cover">Change Cover</string>
+    <string name="song_title">Song Title</string>
+    <string name="artist_name">Artist Name</string>
+    <string name="album_name">Album Name</string>
+    <string name="close">Close</string>
+
+    <!-- Lyrics Viewer & Editor Strings -->
+    <string name="lyrics">Lyrics</string>
+    <string name="lyrics_title">Song Lyrics</string>
+    <string name="lyrics_empty">No lyrics available for this song</string>
+    <string name="add_lyrics">Add Lyrics</string>
+    <string name="edit_lyrics">Edit Lyrics</string>
+    <string name="save_lyrics">Save Lyrics</string>
+    <string name="lyrics_editor_title">Edit Lyrics</string>
+    <string name="lyrics_placeholder">Type or paste song lyrics here...</string>
+    <string name="view_lyrics">View Lyrics</string>
+    <string name="show_cover">Show Cover Art</string>
 </resources>
+
