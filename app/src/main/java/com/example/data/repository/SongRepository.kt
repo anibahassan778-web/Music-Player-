@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
 import android.database.Cursor
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -10,6 +11,8 @@ import android.provider.MediaStore
 import com.example.domain.model.Album
 import com.example.domain.model.Artist
 import com.example.domain.model.Song
+import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -50,7 +53,7 @@ class SongRepository(private val context: Context) {
             e.printStackTrace()
         }
 
-        // Fallback: If no songs found with the filter, try without selection filter
+        // Fallback: If no songs found with the filter, query all audio files
         if (songList.isEmpty()) {
             try {
                 context.contentResolver.query(
@@ -67,7 +70,54 @@ class SongRepository(private val context: Context) {
             }
         }
 
+        // Also load internally imported songs
+        val importedDir = File(context.filesDir, "imported_audio")
+        if (importedDir.exists()) {
+            importedDir.listFiles()?.filter { it.isFile && (it.name.endsWith(".mp3") || it.name.endsWith(".wav") || it.name.endsWith(".m4a") || it.name.endsWith(".ogg") || it.name.endsWith(".flac") || it.name.endsWith(".aac")) }?.forEach { file ->
+                val song = extractSongFromFile(file)
+                if (songList.none { it.data == file.absolutePath || it.id == song.id }) {
+                    songList.add(song)
+                }
+            }
+        }
+
         songList
+    }
+
+    private fun extractSongFromFile(file: File): Song {
+        var title = file.nameWithoutExtension.ifBlank { "Imported Track" }
+        var artist = "Local Audio"
+        var album = "Imported"
+        var duration = 0L
+        var albumArtUri: String? = null
+
+        try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(file.absolutePath)
+            val rTitle = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+            val rArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+            val rAlbum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+            val rDuration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            if (!rTitle.isNullOrBlank()) title = rTitle
+            if (!rArtist.isNullOrBlank()) artist = rArtist
+            if (!rAlbum.isNullOrBlank()) album = rAlbum
+            duration = rDuration?.toLongOrNull() ?: 0L
+            retriever.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        val id = (file.absolutePath.hashCode().toLong() and 0x7FFFFFFFFFFFFFFFL)
+        return Song(
+            id = id,
+            title = title,
+            artist = artist,
+            album = album,
+            duration = duration,
+            contentUri = Uri.fromFile(file).toString(),
+            albumArtUri = albumArtUri,
+            data = file.absolutePath
+        )
     }
 
     private fun parseSongsFromCursor(cursor: Cursor, outList: MutableList<Song>) {
@@ -123,36 +173,60 @@ class SongRepository(private val context: Context) {
 
     suspend fun getSongsFromUris(uris: List<Uri>): List<Song> = withContext(Dispatchers.IO) {
         val importedSongs = mutableListOf<Song>()
+        val importedDir = File(context.filesDir, "imported_audio").apply { mkdirs() }
+
         for (uri in uris) {
             try {
-                val retriever = MediaMetadataRetriever()
-                retriever.setDataSource(context, uri)
-                val rawTitle = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                val rawArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                val rawAlbum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-                val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                val duration = durationStr?.toLongOrNull() ?: 0L
-                retriever.release()
+                try {
+                    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(uri, flags)
+                } catch (e: Exception) {
+                    // Ignore if takePersistableUriPermission is not supported for this uri
+                }
 
-                val fallbackName = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')
-                val title = if (!rawTitle.isNullOrBlank()) rawTitle else fallbackName ?: "Imported Track"
-                val artist = if (!rawArtist.isNullOrBlank()) rawArtist else "Local Audio"
-                val album = if (!rawAlbum.isNullOrBlank()) rawAlbum else "Imported"
+                // Copy file locally so playback is 100% reliable and permanent
+                val fileName = (uri.lastPathSegment ?: "track_${System.currentTimeMillis()}").substringAfterLast('/')
+                val cleanFileName = if (fileName.contains('.')) fileName else "$fileName.mp3"
+                val destFile = File(importedDir, "${System.currentTimeMillis()}_$cleanFileName")
 
-                val id = (uri.toString().hashCode().toLong() and 0x7FFFFFFFFFFFFFFFL)
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(destFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
 
-                importedSongs.add(
-                    Song(
-                        id = id,
-                        title = title,
-                        artist = artist,
-                        album = album,
-                        duration = duration,
-                        contentUri = uri.toString(),
-                        albumArtUri = null,
-                        data = uri.toString()
+                if (destFile.exists() && destFile.length() > 0) {
+                    val song = extractSongFromFile(destFile)
+                    importedSongs.add(song)
+                } else {
+                    val retriever = MediaMetadataRetriever()
+                    retriever.setDataSource(context, uri)
+                    val rawTitle = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                    val rawArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                    val rawAlbum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                    val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    val duration = durationStr?.toLongOrNull() ?: 0L
+                    retriever.release()
+
+                    val fallbackName = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')
+                    val title = if (!rawTitle.isNullOrBlank()) rawTitle else fallbackName ?: "Imported Track"
+                    val artist = if (!rawArtist.isNullOrBlank()) rawArtist else "Local Audio"
+                    val album = if (!rawAlbum.isNullOrBlank()) rawAlbum else "Imported"
+                    val id = (uri.toString().hashCode().toLong() and 0x7FFFFFFFFFFFFFFFL)
+
+                    importedSongs.add(
+                        Song(
+                            id = id,
+                            title = title,
+                            artist = artist,
+                            album = album,
+                            duration = duration,
+                            contentUri = uri.toString(),
+                            albumArtUri = null,
+                            data = uri.toString()
+                        )
                     )
-                )
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }

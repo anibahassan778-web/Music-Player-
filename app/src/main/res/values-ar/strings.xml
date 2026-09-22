@@ -60,6 +60,7 @@
     <string name="high_fidelity_audio">صوت عالي الدقة HD</string>
     <string name="permission_title">مطلوب إذن الوصول إلى الوسائط</string>
     <string name="permission_desc">يحتاج مشغل الموسيقى إذن الوصول إلى الملفات الصوتية في ذاكرة جهازك لتشغيل أغانيك.</string>
+    <string name="permission_desc_android13">يحتاج مشغل الموسيقى إذن الوصول إلى الملفات الصوتية لقراءة مكتبة أغانيك الصوتية المحفوظة في جهازك.</string>
     <string name="grant_permission">منح الإذن</string>
     <string name="open_settings">فتح الإعدادات</string>
     <string name="playback_channel_name">تشغيل الموسيقى</string>

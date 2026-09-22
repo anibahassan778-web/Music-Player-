@@ -341,12 +341,23 @@ class MusicService : MediaSessionService() {
             metadataBuilder.setArtworkData(artworkBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
         }
         song.albumArtUri?.let {
-            metadataBuilder.setArtworkUri(Uri.parse(it))
+            val artUri = if (it.startsWith("content://") || it.startsWith("file://") || it.startsWith("http")) {
+                Uri.parse(it)
+            } else {
+                Uri.fromFile(java.io.File(it))
+            }
+            metadataBuilder.setArtworkUri(artUri)
+        }
+
+        val parsedUri = if (song.contentUri.startsWith("content://") || song.contentUri.startsWith("file://") || song.contentUri.startsWith("http")) {
+            Uri.parse(song.contentUri)
+        } else {
+            Uri.fromFile(java.io.File(song.contentUri))
         }
 
         return MediaItem.Builder()
             .setMediaId(song.id.toString())
-            .setUri(song.contentUri)
+            .setUri(parsedUri)
             .setMediaMetadata(metadataBuilder.build())
             .build()
     }

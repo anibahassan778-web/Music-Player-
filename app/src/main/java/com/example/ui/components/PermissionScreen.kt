@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -77,7 +78,11 @@ fun PermissionScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = stringResource(R.string.permission_desc),
+                    text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        stringResource(R.string.permission_desc_android13)
+                    } else {
+                        stringResource(R.string.permission_desc)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -95,7 +100,7 @@ fun PermissionScreen(
                     Text(text = stringResource(R.string.grant_permission))
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedButton(
                     onClick = onImportAudioFiles,
@@ -113,7 +118,7 @@ fun PermissionScreen(
                     Text(text = stringResource(R.string.import_audio))
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedButton(
                     onClick = onOpenAppSettings,

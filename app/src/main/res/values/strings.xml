@@ -58,9 +58,10 @@
     <string name="library_section">Music Library</string>
     <string name="library_detected_songs">%1$d audio tracks detected</string>
 
-    <string name="permission_title">Storage Permission Required</string>
-    <string name="permission_desc">Music Player needs permission to read audio files from your device storage to play your music.</string>
-    <string name="grant_permission">Allow Access</string>
+    <string name="permission_title">Music Library Access</string>
+    <string name="permission_desc">Music Player needs access to your device storage to find and play your audio files.</string>
+    <string name="permission_desc_android13">Music Player needs permission to read audio files from your device to load your local music library.</string>
+    <string name="grant_permission">Allow Audio Access</string>
     <string name="open_settings">Open Settings</string>
     <string name="playback_channel_name">Music Playback</string>
     <string name="playback_channel_desc">Shows playback controls and currently playing song</string>
