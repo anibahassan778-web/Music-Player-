@@ -201,11 +201,15 @@ class MusicService : MediaSessionService() {
             .setEnabled(true)
             .build()
 
-        mediaSession = MediaSession.Builder(this, player)
+        createNotificationChannel()
+
+        val session = MediaSession.Builder(this, player)
             .setSessionActivity(pendingIntent)
             .setCallback(MediaSessionCallback())
             .setCustomLayout(listOf(rewindButton, forwardButton))
             .build()
+        mediaSession = session
+        addSession(session)
 
         val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
             .setChannelId(NOTIFICATION_CHANNEL_ID)
@@ -346,10 +350,15 @@ class MusicService : MediaSessionService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.playback_channel_name)
             val descriptionText = getString(R.string.playback_channel_desc)
-            val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance).apply {
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                name,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
                 description = descriptionText
                 setShowBadge(false)
+                setSound(null, null)
+                enableVibration(false)
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -738,6 +747,7 @@ class MusicService : MediaSessionService() {
         progressJob?.cancel()
         sleepTimerJob?.cancel()
         mediaSession?.run {
+            removeSession(this)
             player.release()
             release()
             mediaSession = null
