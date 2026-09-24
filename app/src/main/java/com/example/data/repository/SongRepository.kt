@@ -20,11 +20,7 @@ class SongRepository(private val context: Context) {
 
     suspend fun getSongsFromDevice(): List<Song> = withContext(Dispatchers.IO) {
         val songList = mutableListOf<Song>()
-        val collection: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        } else {
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        }
+        val externalUri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
 
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
@@ -36,44 +32,63 @@ class SongRepository(private val context: Context) {
             MediaStore.Audio.Media.DATA
         )
 
-        val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.MIME_TYPE} LIKE 'audio/%') AND ${MediaStore.Audio.Media.DURATION} >= 1000"
         val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
 
+        // 1. Try querying external audio with loose filter
         try {
+            val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 OR ${MediaStore.Audio.Media.MIME_TYPE} LIKE 'audio/%'"
             context.contentResolver.query(
-                collection,
+                externalUri,
                 projection,
                 selection,
                 null,
                 sortOrder
             )?.use { cursor ->
-                parseSongsFromCursor(cursor, songList)
+                parseSongsFromCursor(cursor, songList, externalUri)
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        // Fallback: If no songs found with the filter, query all audio files
+        // 2. Fallback: If no songs found with the filter, query all external audio files
         if (songList.isEmpty()) {
             try {
                 context.contentResolver.query(
-                    collection,
+                    externalUri,
                     projection,
                     null,
                     null,
                     sortOrder
                 )?.use { cursor ->
-                    parseSongsFromCursor(cursor, songList)
+                    parseSongsFromCursor(cursor, songList, externalUri)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
-        // Also load internally imported songs
+        // 3. Fallback: Query internal system audio files if external storage has none
+        if (songList.isEmpty()) {
+            try {
+                val internalUri = MediaStore.Audio.Media.INTERNAL_CONTENT_URI
+                context.contentResolver.query(
+                    internalUri,
+                    projection,
+                    null,
+                    null,
+                    sortOrder
+                )?.use { cursor ->
+                    parseSongsFromCursor(cursor, songList, internalUri)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // 4. Also load user-imported audio files
         val importedDir = File(context.filesDir, "imported_audio")
         if (importedDir.exists()) {
-            importedDir.listFiles()?.filter { it.isFile && (it.name.endsWith(".mp3") || it.name.endsWith(".wav") || it.name.endsWith(".m4a") || it.name.endsWith(".ogg") || it.name.endsWith(".flac") || it.name.endsWith(".aac")) }?.forEach { file ->
+            importedDir.listFiles()?.filter { it.isFile && isAudioFileName(it.name) }?.forEach { file ->
                 val song = extractSongFromFile(file)
                 if (songList.none { it.data == file.absolutePath || it.id == song.id }) {
                     songList.add(song)
@@ -81,13 +96,64 @@ class SongRepository(private val context: Context) {
             }
         }
 
+        // 5. Fallback: If still completely empty (e.g. freshly created emulator without audio files),
+        // copy the real bundled MP3 audio files from assets to provide an immediate real listening experience!
+        if (songList.isEmpty()) {
+            extractBundledSampleMusic(songList)
+        }
+
         songList
     }
 
-    private fun extractSongFromFile(file: File): Song {
-        var title = file.nameWithoutExtension.ifBlank { "Imported Track" }
-        var artist = "Local Audio"
-        var album = "Imported"
+    private fun isAudioFileName(name: String): Boolean {
+        val lower = name.lowercase()
+        return lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".m4a") ||
+                lower.endsWith(".ogg") || lower.endsWith(".flac") || lower.endsWith(".aac")
+    }
+
+    private fun extractBundledSampleMusic(outList: MutableList<Song>) {
+        try {
+            val sampleDir = File(context.filesDir, "sample_music").apply { mkdirs() }
+            val assetManager = context.assets
+            val assetFiles = assetManager.list("sample_music") ?: emptyArray()
+
+            for (assetName in assetFiles) {
+                if (!isAudioFileName(assetName)) continue
+                val outFile = File(sampleDir, assetName)
+                if (!outFile.exists() || outFile.length() == 0L) {
+                    assetManager.open("sample_music/$assetName").use { input ->
+                        FileOutputStream(outFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+                if (outFile.exists() && outFile.length() > 0L) {
+                    val fallbackTitle = when {
+                        assetName.contains("acoustic") -> "Acoustic Melody"
+                        assetName.contains("ambient") -> "Ambient Soundscape"
+                        assetName.contains("melody") -> "Inspiring Harmony"
+                        else -> outFile.nameWithoutExtension.replace('_', ' ').replaceFirstChar { it.uppercase() }
+                    }
+                    val song = extractSongFromFile(outFile, defaultTitle = fallbackTitle, defaultArtist = "Original Artists", defaultAlbum = "Music Player Essentials")
+                    if (outList.none { it.id == song.id }) {
+                        outList.add(song)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun extractSongFromFile(
+        file: File,
+        defaultTitle: String? = null,
+        defaultArtist: String = "Local Audio",
+        defaultAlbum: String = "Imported"
+    ): Song {
+        var title = defaultTitle ?: file.nameWithoutExtension.ifBlank { "Audio Track" }
+        var artist = defaultArtist
+        var album = defaultAlbum
         var duration = 0L
         var albumArtUri: String? = null
 
@@ -120,7 +186,7 @@ class SongRepository(private val context: Context) {
         )
     }
 
-    private fun parseSongsFromCursor(cursor: Cursor, outList: MutableList<Song>) {
+    private fun parseSongsFromCursor(cursor: Cursor, outList: MutableList<Song>, baseContentUri: Uri) {
         val idColumn = cursor.getColumnIndex(MediaStore.Audio.Media._ID)
         val titleColumn = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)
         val artistColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)
@@ -144,10 +210,7 @@ class SongRepository(private val context: Context) {
             val artist = if (!rawArtist.isNullOrBlank() && rawArtist != "<unknown>") rawArtist else "Unknown Artist"
             val album = if (!rawAlbum.isNullOrBlank() && rawAlbum != "<unknown>") rawAlbum else "Unknown Album"
 
-            val contentUri = ContentUris.withAppendedId(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                id
-            ).toString()
+            val contentUri = ContentUris.withAppendedId(baseContentUri, id).toString()
 
             val albumArtUri = if (albumId >= 0) {
                 ContentUris.withAppendedId(

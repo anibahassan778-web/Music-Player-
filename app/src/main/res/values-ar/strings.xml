@@ -175,5 +175,6 @@
     <string name="lyrics_placeholder">اكتب أو الصق كلمات الأغنية هنا...</string>
     <string name="view_lyrics">عرض الكلمات</string>
     <string name="show_cover">عرض الغلاف</string>
+    <string name="continue_to_app">الدخول إلى المشغل</string>
 </resources>
 

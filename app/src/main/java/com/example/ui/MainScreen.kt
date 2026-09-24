@@ -275,6 +275,10 @@ private fun MainScreenContent(
             },
             onImportAudioFiles = {
                 audioPickerLauncher.launch(arrayOf("audio/*"))
+            },
+            onContinueToApp = {
+                usedFallbackMode = true
+                viewModel.loadSongs()
             }
         )
     } else if (showSettingsScreen) {

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Settings
@@ -21,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +38,7 @@ fun PermissionScreen(
     onRequestPermission: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onImportAudioFiles: () -> Unit,
+    onContinueToApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -134,6 +137,23 @@ fun PermissionScreen(
                     )
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(text = stringResource(R.string.open_settings))
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                TextButton(
+                    onClick = onContinueToApp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("continue_to_app_button")
+                ) {
+                    Text(text = stringResource(R.string.continue_to_app))
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Icon(
+                        imageVector = Icons.Outlined.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }

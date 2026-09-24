@@ -214,6 +214,7 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_PLAY_PAUSE -> playPause()
             ACTION_PLAY -> if (!player.isPlaying) player.play()
@@ -227,7 +228,6 @@ class MusicService : MediaSessionService() {
                 stopSelf()
             }
         }
-        super.onStartCommand(intent, flags, startId)
         return START_STICKY
     }
 

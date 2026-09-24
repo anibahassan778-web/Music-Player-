@@ -175,5 +175,6 @@
     <string name="lyrics_placeholder">Type or paste song lyrics here...</string>
     <string name="view_lyrics">View Lyrics</string>
     <string name="show_cover">Show Cover Art</string>
+    <string name="continue_to_app">Continue to Player</string>
 </resources>
 

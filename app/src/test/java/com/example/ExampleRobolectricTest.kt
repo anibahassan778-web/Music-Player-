@@ -50,6 +50,7 @@ class ExampleRobolectricTest {
         var nextClicked = false
         var cardClicked = false
 
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             MyApplicationTheme {
                 MiniPlayer(
@@ -63,6 +64,7 @@ class ExampleRobolectricTest {
                 )
             }
         }
+        composeTestRule.mainClock.advanceTimeBy(300)
 
         composeTestRule.onNodeWithText("Starlight Serenade").assertIsDisplayed()
         composeTestRule.onNodeWithText("Aurora Waves").assertIsDisplayed()
@@ -89,6 +91,7 @@ class ExampleRobolectricTest {
             duration = 180000L
         )
 
+        composeTestRule.mainClock.autoAdvance = false
         composeTestRule.setContent {
             MyApplicationTheme {
                 FullPlayerModal(
@@ -109,13 +112,21 @@ class ExampleRobolectricTest {
                 )
             }
         }
+        composeTestRule.mainClock.advanceTimeBy(300)
 
-        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Starlight Serenade").assertIsDisplayed()
         composeTestRule.onNodeWithText("Aurora Waves").assertIsDisplayed()
         composeTestRule.onNodeWithTag("player_progress_slider").assertIsDisplayed()
 
         composeTestRule.onNodeWithTag("full_player_play_pause").performClick()
         assertTrue(playPauseClicked)
+    }
+
+    @Test
+    fun `main activity launches without crash`() {
+        val controller = org.robolectric.Robolectric.buildActivity(MainActivity::class.java)
+        controller.setup()
+        val activity = controller.get()
+        org.junit.Assert.assertNotNull(activity)
     }
 }

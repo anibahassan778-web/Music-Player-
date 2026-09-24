@@ -48,6 +48,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private var musicService: MusicService? = null
     private var isBound = false
+    private var pendingAction: ((MusicService) -> Unit)? = null
 
     val appSettings: StateFlow<AppSettings> = preferencesManager.appSettings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
@@ -130,10 +131,15 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as? MusicService.MusicBinder
-            musicService = binder?.getService()
-            isBound = true
-            observeServiceState()
-            restoreLastPlayedState()
+            val svc = binder?.getService()
+            musicService = svc
+            isBound = svc != null
+            if (svc != null) {
+                observeServiceState()
+                restoreLastPlayedState()
+                pendingAction?.invoke(svc)
+                pendingAction = null
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -191,8 +197,6 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private fun bindMusicService() {
         val intent = Intent(context, MusicService::class.java)
         try {
-            // Start service so it remains active in background even when Activity is backgrounded
-            context.startService(intent)
             context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -267,7 +271,13 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     fun playSong(song: Song, playlist: List<Song> = _songs.value) {
         val index = playlist.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
-        musicService?.playSongList(playlist, index)
+        val svc = musicService
+        if (svc != null) {
+            svc.playSongList(playlist, index)
+        } else {
+            pendingAction = { it.playSongList(playlist, index) }
+            bindMusicService()
+        }
     }
 
     fun playPause() {
@@ -275,7 +285,13 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         if (currentSong == null && _songs.value.isNotEmpty()) {
             playSong(_songs.value.first())
         } else {
-            musicService?.playPause()
+            val svc = musicService
+            if (svc != null) {
+                svc.playPause()
+            } else {
+                pendingAction = { it.playPause() }
+                bindMusicService()
+            }
         }
     }
 
