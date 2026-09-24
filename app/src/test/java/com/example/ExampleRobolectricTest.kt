@@ -129,4 +129,13 @@ class ExampleRobolectricTest {
         val activity = controller.get()
         org.junit.Assert.assertNotNull(activity)
     }
+
+    @Test
+    fun `song repository loads bundled music when storage is empty`() = kotlinx.coroutines.test.runTest {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val repo = com.example.data.repository.SongRepository(context)
+        val songs = repo.getSongsFromDevice()
+        org.junit.Assert.assertTrue("Expected songs to be loaded from assets, found: ${songs.size}", songs.isNotEmpty())
+        org.junit.Assert.assertTrue("Expected file path to exist for ${songs[0].data}", java.io.File(songs[0].data).exists())
+    }
 }

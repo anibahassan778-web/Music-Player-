@@ -176,5 +176,6 @@
     <string name="view_lyrics">View Lyrics</string>
     <string name="show_cover">Show Cover Art</string>
     <string name="continue_to_app">Continue to Player</string>
+    <string name="permission_banner_msg">Grant audio permission to load your device music files.</string>
 </resources>
 

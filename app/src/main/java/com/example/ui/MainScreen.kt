@@ -31,6 +31,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -54,9 +55,13 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlaylistPlay
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -259,32 +264,20 @@ private fun MainScreenContent(
         }
     }
 
-    if (!hasAudioPermission && !usedFallbackMode && songs.isEmpty()) {
-        PermissionScreen(
-            onRequestPermission = { permissionsLauncher.launch(requiredPermissions.toTypedArray()) },
-            onOpenAppSettings = {
-                try {
-                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.fromParts("package", context.packageName, null)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            },
-            onImportAudioFiles = {
-                audioPickerLauncher.launch(arrayOf("audio/*"))
-            },
-            onContinueToApp = {
-                usedFallbackMode = true
-                viewModel.loadSongs()
-            }
-        )
-    } else if (showSettingsScreen) {
+    var dismissedPermissionBanner by remember { mutableStateOf(false) }
+
+    if (showSettingsScreen) {
         SettingsScreen(
             appSettings = appSettings,
             onNavigateBack = { showSettingsScreen = false },
+            onUpdateThemeMode = { viewModel.updateThemeMode(it) },
+            onUpdateColorPreset = { viewModel.updateColorPreset(it) },
+            onUpdateCustomPrimaryColor = { viewModel.updateCustomPrimaryColor(it) },
+            onUpdateCornerPreset = { viewModel.updateCornerPreset(it) },
+            onUpdateVisualizerStyle = { viewModel.updateVisualizerStyle(it) },
+            onUpdateNeonGlow = { viewModel.updateNeonGlow(it) },
+            onUpdateBackgroundBlur = { viewModel.updateBackgroundBlur(it) },
+            onResetCustomizationsToDefault = { viewModel.resetCustomizationsToDefault() },
             onUpdateFontPreset = { viewModel.updateFontPreset(it) },
             onUpdateLanguageCode = { viewModel.updateLanguageCode(it) },
             onUpdateFontScale = { viewModel.updateFontScale(it) },
@@ -374,6 +367,63 @@ private fun MainScreenContent(
                                 containerColor = MaterialTheme.colorScheme.surface
                             )
                         )
+                    }
+
+                    // Informational banner if audio permission is not yet granted
+                    if (!hasAudioPermission && !dismissedPermissionBanner) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.LibraryMusic,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.permission_banner_msg),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Button(
+                                    onClick = { permissionsLauncher.launch(requiredPermissions.toTypedArray()) },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.testTag("banner_grant_permission_button")
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.grant_permission),
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { dismissedPermissionBanner = true },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Dismiss",
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             },

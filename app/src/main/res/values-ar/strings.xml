@@ -176,5 +176,6 @@
     <string name="view_lyrics">عرض الكلمات</string>
     <string name="show_cover">عرض الغلاف</string>
     <string name="continue_to_app">الدخول إلى المشغل</string>
+    <string name="permission_banner_msg">امنح إذن الوسائط للوصول إلى كافة مقاطعك الصوتية المخزنة على الهاتف.</string>
 </resources>
 

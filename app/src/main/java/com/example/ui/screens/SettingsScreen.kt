@@ -34,18 +34,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.FontDownload
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.RoundedCorner
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Watch
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -59,11 +67,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -81,7 +95,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.domain.model.AppSettings
+import com.example.domain.model.AppThemeMode
+import com.example.domain.model.ColorPreset
+import com.example.domain.model.CornerPreset
 import com.example.domain.model.FontPreset
+import com.example.domain.model.VisualizerStyle
 import com.example.ui.theme.LocalAppCornerRadius
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -89,6 +107,14 @@ import com.example.ui.theme.LocalAppCornerRadius
 fun SettingsScreen(
     appSettings: AppSettings,
     onNavigateBack: () -> Unit,
+    onUpdateThemeMode: (AppThemeMode) -> Unit,
+    onUpdateColorPreset: (ColorPreset) -> Unit,
+    onUpdateCustomPrimaryColor: (Long) -> Unit,
+    onUpdateCornerPreset: (CornerPreset) -> Unit,
+    onUpdateVisualizerStyle: (VisualizerStyle) -> Unit,
+    onUpdateNeonGlow: (Boolean) -> Unit,
+    onUpdateBackgroundBlur: (Boolean) -> Unit,
+    onResetCustomizationsToDefault: () -> Unit,
     onUpdateFontPreset: (FontPreset) -> Unit,
     onUpdateLanguageCode: (String) -> Unit,
     onUpdateFontScale: (Float) -> Unit,
@@ -100,6 +126,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val cornerRadius = LocalAppCornerRadius.current
     val primaryColor = MaterialTheme.colorScheme.primary
+    var showResetDialog by remember { mutableStateOf(false) }
 
     val fontPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -165,7 +192,408 @@ fun SettingsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. قسم لغة التطبيق (Language Selection)
+            // 1. قسم وضع المظهر ونظام الألوان (Theme Mode & Color Palette)
+            item {
+                SettingsCardContainer(
+                    icon = Icons.Default.Palette,
+                    title = stringResource(R.string.settings_appearance),
+                    subtitle = stringResource(R.string.settings_theme_mode),
+                    cornerRadius = cornerRadius
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Theme Mode Selection
+                        Text(
+                            text = stringResource(R.string.settings_theme_mode),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        val themeModes = listOf(
+                            Triple(AppThemeMode.SYSTEM, stringResource(R.string.theme_system), "⚙️"),
+                            Triple(AppThemeMode.DARK, stringResource(R.string.theme_dark), "🌙"),
+                            Triple(AppThemeMode.LIGHT, stringResource(R.string.theme_light), "☀️"),
+                            Triple(AppThemeMode.AMOLED, stringResource(R.string.theme_amoled), "🖤")
+                        )
+
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            themeModes.forEach { (mode, title, emoji) ->
+                                val isSelected = appSettings.themeMode == mode
+                                val animatedBorderColor by animateColorAsState(
+                                    targetValue = if (isSelected) primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                    label = "themeBorder"
+                                )
+                                val animatedBgColor by animateColorAsState(
+                                    targetValue = if (isSelected) primaryColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                    label = "themeBg"
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = animatedBgColor,
+                                    border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, animatedBorderColor),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { onUpdateThemeMode(mode) }
+                                        .testTag("theme_mode_${mode.name.lowercase()}")
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(text = emoji, fontSize = 16.sp)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = title,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) primaryColor else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+
+                        // Accent Color Palette
+                        Text(
+                            text = stringResource(R.string.settings_color_palette),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        val colorPresets = listOf(
+                            ColorPreset.SKY_BLUE,
+                            ColorPreset.CYAN,
+                            ColorPreset.INDIGO,
+                            ColorPreset.SUNSET,
+                            ColorPreset.EMERALD,
+                            ColorPreset.VIOLET,
+                            ColorPreset.CRIMSON,
+                            ColorPreset.ROSE_GOLD,
+                            ColorPreset.DYNAMIC,
+                            ColorPreset.CUSTOM
+                        )
+
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            colorPresets.forEach { preset ->
+                                val isSelected = appSettings.colorPreset == preset
+                                val presetColor = when (preset) {
+                                    ColorPreset.DYNAMIC -> MaterialTheme.colorScheme.primary
+                                    ColorPreset.CUSTOM -> Color(appSettings.customPrimaryColor)
+                                    else -> Color(preset.primaryDarkHex)
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) primaryColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                    border = BorderStroke(
+                                        if (isSelected) 1.5.dp else 1.dp,
+                                        if (isSelected) primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                    ),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable { onUpdateColorPreset(preset) }
+                                        .testTag("color_preset_${preset.name.lowercase()}")
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clip(CircleShape)
+                                                .background(presetColor)
+                                                .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = getColorPresetLabel(preset),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) primaryColor else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Custom color swatches if CUSTOM is selected
+                        AnimatedVisibility(
+                            visible = appSettings.colorPreset == ColorPreset.CUSTOM,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.pick_custom_color),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val swatches = listOf(
+                                        0xFF0284C7, 0xFF0891B2, 0xFF06B6D4, 0xFF14B8A6,
+                                        0xFF059669, 0xFF22C55E, 0xFFEAB308, 0xFFF59E0B,
+                                        0xFFEA580C, 0xFFEF4444, 0xFFDC2626, 0xFFDB2777,
+                                        0xFFD946EF, 0xFF7C3AED, 0xFF4F46E5, 0xFF6366F1
+                                    )
+                                    swatches.forEach { hex ->
+                                        val isColorSelected = appSettings.customPrimaryColor == hex
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(hex))
+                                                .border(
+                                                    width = if (isColorSelected) 3.dp else 1.dp,
+                                                    color = if (isColorSelected) MaterialTheme.colorScheme.onSurface else Color.White.copy(alpha = 0.4f),
+                                                    shape = CircleShape
+                                                )
+                                                .clickable {
+                                                    onUpdateColorPreset(ColorPreset.CUSTOM)
+                                                    onUpdateCustomPrimaryColor(hex)
+                                                }
+                                                .testTag("custom_color_${hex.toString(16)}"),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isColorSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. قسم استدارة الحواف وشكل الواجهة (Corners & UI Shape)
+            item {
+                SettingsCardContainer(
+                    icon = Icons.Default.RoundedCorner,
+                    title = stringResource(R.string.settings_ui_style),
+                    subtitle = "تخصيص درجة استدارة البطاقات والأزرار",
+                    cornerRadius = cornerRadius
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val cornerOptions = listOf(
+                            CornerPreset.EXTRA_ROUNDED,
+                            CornerPreset.STANDARD,
+                            CornerPreset.SHARP
+                        )
+                        cornerOptions.forEach { preset ->
+                            val isSelected = appSettings.cornerPreset == preset
+                            Surface(
+                                shape = RoundedCornerShape(preset.radiusDp.dp),
+                                color = if (isSelected) primaryColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                border = BorderStroke(
+                                    if (isSelected) 1.5.dp else 1.dp,
+                                    if (isSelected) primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(preset.radiusDp.dp))
+                                    .clickable { onUpdateCornerPreset(preset) }
+                                    .testTag("corner_preset_${preset.name.lowercase()}")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = getCornerPresetLabel(preset),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) primaryColor else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "${preset.radiusDp}dp radius",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = primaryColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. قسم المؤثر البصري والتوهج والضبابية (Visualizer & Effects)
+            item {
+                SettingsCardContainer(
+                    icon = Icons.Default.GraphicEq,
+                    title = stringResource(R.string.settings_visualizer),
+                    subtitle = "المؤثرات البصرية وتوهج المشغل",
+                    cornerRadius = cornerRadius
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text(
+                            text = stringResource(R.string.visualizer_type),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val styles = listOf(
+                                VisualizerStyle.EQUALIZER_BARS,
+                                VisualizerStyle.SMOOTH_WAVE,
+                                VisualizerStyle.ENERGY_PULSE,
+                                VisualizerStyle.NEON_GLOW
+                            )
+                            styles.forEach { style ->
+                                val isSelected = appSettings.visualizerStyle == style
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) primaryColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                    border = BorderStroke(
+                                        if (isSelected) 1.5.dp else 1.dp,
+                                        if (isSelected) primaryColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable { onUpdateVisualizerStyle(style) }
+                                        .testTag("visualizer_style_${style.name.lowercase()}")
+                                ) {
+                                    Text(
+                                        text = getVisualizerStyleLabel(style),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) primaryColor else MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 10.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+
+                        // Neon Ambient Glow Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.neon_ambient_glow),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(R.string.neon_glow_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = appSettings.enableNeonGlow,
+                                onCheckedChange = { onUpdateNeonGlow(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedTrackColor = primaryColor
+                                ),
+                                modifier = Modifier.testTag("neon_glow_switch")
+                            )
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+
+                        // Frosted Background Blur Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.player_blur_effect),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(R.string.player_blur_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = appSettings.enableBackgroundBlur,
+                                onCheckedChange = { onUpdateBackgroundBlur(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedTrackColor = primaryColor
+                                ),
+                                modifier = Modifier.testTag("background_blur_switch")
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 4. قسم لغة التطبيق (Language Selection)
             item {
                 SettingsCardContainer(
                     icon = Icons.Default.Language,
@@ -489,7 +917,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. قسم التلاشي التدريجي بين الأغاني (Crossfade)
+            // 6. قسم التلاشي التدريجي بين الأغاني (Crossfade)
             item {
                 SettingsCardContainer(
                     icon = Icons.Default.Audiotrack,
@@ -561,7 +989,7 @@ fun SettingsScreen(
                                         .clip(RoundedCornerShape(8.dp))
                                         .clickable { onUpdateCrossfadeSeconds(sec) }
                                         .testTag("crossfade_preset_$sec")
-                                ) {
+                                 ) {
                                     Text(
                                         text = if (sec == 0) "Off" else "${sec}s",
                                         style = MaterialTheme.typography.labelMedium,
@@ -577,7 +1005,41 @@ fun SettingsScreen(
                 }
             }
 
-            // 4. قسم حول التطبيق (About App)
+            // 7. قسم استعادة التخصيصات الافتراضية (Reset Customizations)
+            item {
+                SettingsCardContainer(
+                    icon = Icons.Default.RestartAlt,
+                    title = stringResource(R.string.settings_reset),
+                    subtitle = stringResource(R.string.reset_confirm_desc),
+                    cornerRadius = cornerRadius
+                ) {
+                    Button(
+                        onClick = { showResetDialog = true },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("reset_customizations_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RestartAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.settings_reset),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
+
+            // 8. قسم حول التطبيق (About App)
             item {
                 SettingsCardContainer(
                     icon = Icons.Default.Info,
@@ -682,6 +1144,44 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(20.dp))
             }
+        }
+
+        if (showResetDialog) {
+            AlertDialog(
+                onDismissRequest = { showResetDialog = false },
+                title = {
+                    Text(
+                        text = stringResource(R.string.reset_confirm_title),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(text = stringResource(R.string.reset_confirm_desc))
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            onResetCustomizationsToDefault()
+                            showResetDialog = false
+                            Toast.makeText(context, context.getString(R.string.settings_reset), Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.testTag("confirm_reset_button")
+                    ) {
+                        Text(text = stringResource(R.string.reset))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showResetDialog = false },
+                        modifier = Modifier.testTag("cancel_reset_button")
+                    ) {
+                        Text(text = stringResource(R.string.cancel))
+                    }
+                }
+            )
         }
     }
 }
@@ -791,5 +1291,40 @@ private fun SettingsCardContainer(
 
             content()
         }
+    }
+}
+
+@Composable
+private fun getColorPresetLabel(preset: ColorPreset): String {
+    return when (preset) {
+        ColorPreset.SKY_BLUE -> stringResource(R.string.color_sky_blue)
+        ColorPreset.CYAN -> stringResource(R.string.color_cyan)
+        ColorPreset.INDIGO -> stringResource(R.string.color_indigo)
+        ColorPreset.SUNSET -> stringResource(R.string.color_sunset)
+        ColorPreset.EMERALD -> stringResource(R.string.color_emerald)
+        ColorPreset.VIOLET -> stringResource(R.string.color_violet)
+        ColorPreset.CRIMSON -> stringResource(R.string.color_crimson)
+        ColorPreset.ROSE_GOLD -> stringResource(R.string.color_rose_gold)
+        ColorPreset.DYNAMIC -> stringResource(R.string.color_dynamic)
+        ColorPreset.CUSTOM -> stringResource(R.string.color_custom)
+    }
+}
+
+@Composable
+private fun getCornerPresetLabel(preset: CornerPreset): String {
+    return when (preset) {
+        CornerPreset.EXTRA_ROUNDED -> stringResource(R.string.corner_extra_rounded)
+        CornerPreset.STANDARD -> stringResource(R.string.corner_standard)
+        CornerPreset.SHARP -> stringResource(R.string.corner_sharp)
+    }
+}
+
+@Composable
+private fun getVisualizerStyleLabel(style: VisualizerStyle): String {
+    return when (style) {
+        VisualizerStyle.EQUALIZER_BARS -> stringResource(R.string.visualizer_bars)
+        VisualizerStyle.SMOOTH_WAVE -> stringResource(R.string.visualizer_wave)
+        VisualizerStyle.ENERGY_PULSE -> stringResource(R.string.visualizer_pulse)
+        VisualizerStyle.NEON_GLOW -> stringResource(R.string.visualizer_glow)
     }
 }
