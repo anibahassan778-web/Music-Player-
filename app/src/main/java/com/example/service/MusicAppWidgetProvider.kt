@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -76,7 +77,17 @@ class MusicAppWidgetProvider : AppWidgetProvider() {
                         context.contentResolver.openInputStream(uri)?.use { stream ->
                             val bitmap = BitmapFactory.decodeStream(stream)
                             if (bitmap != null) {
-                                views.setImageViewBitmap(R.id.widget_album_art, bitmap)
+                                val maxDim = 192
+                                val scaled = if (bitmap.width > maxDim || bitmap.height > maxDim) {
+                                    val scale = maxDim.toFloat() / maxOf(bitmap.width, bitmap.height)
+                                    Bitmap.createScaledBitmap(
+                                        bitmap,
+                                        (bitmap.width * scale).toInt().coerceAtLeast(1),
+                                        (bitmap.height * scale).toInt().coerceAtLeast(1),
+                                        true
+                                    )
+                                } else bitmap
+                                views.setImageViewBitmap(R.id.widget_album_art, scaled)
                             } else {
                                 views.setImageViewResource(R.id.widget_album_art, R.drawable.ic_widget_music_note)
                             }
@@ -111,7 +122,11 @@ class MusicAppWidgetProvider : AppWidgetProvider() {
                 getServicePendingIntent(context, MusicService.ACTION_NEXT, 103)
             )
 
-            appWidgetManager.updateAppWidget(appWidgetId, views)
+            try {
+                appWidgetManager.updateAppWidget(appWidgetId, views)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         private fun getServicePendingIntent(

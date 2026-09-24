@@ -185,6 +185,15 @@ private fun MainScreenContent(
         }
     }
 
+    LaunchedEffect(Unit) {
+        val missingPermissions = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missingPermissions.isNotEmpty()) {
+            permissionsLauncher.launch(missingPermissions.toTypedArray())
+        }
+    }
+
     val audioPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->

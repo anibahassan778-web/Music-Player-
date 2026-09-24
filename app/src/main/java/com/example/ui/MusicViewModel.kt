@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.os.Build
 import android.os.IBinder
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -196,6 +197,15 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun bindMusicService() {
         val intent = Intent(context, MusicService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         try {
             context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         } catch (e: Exception) {

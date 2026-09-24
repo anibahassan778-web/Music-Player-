@@ -212,6 +212,7 @@ class MusicService : MediaSessionService() {
             .setChannelName(R.string.playback_channel_name)
             .setNotificationId(NOTIFICATION_ID)
             .build()
+        notificationProvider.setSmallIcon(R.drawable.ic_music_notification)
         setMediaNotificationProvider(notificationProvider)
     }
 
@@ -238,7 +239,7 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action != null && intent.action != ACTION_STOP) {
+        if (intent?.action != ACTION_STOP) {
             ensureForegroundNotification()
         }
         super.onStartCommand(intent, flags, startId)
@@ -390,6 +391,15 @@ class MusicService : MediaSessionService() {
     }
 
     private fun loadArtworkBytes(song: Song): ByteArray? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                val songUri = Uri.parse(song.contentUri)
+                val bitmap = contentResolver.loadThumbnail(songUri, android.util.Size(512, 512), null)
+                return compressBitmapForNotification(bitmap)
+            } catch (e: Exception) {
+                // Ignore and fall through to albumArtUri
+            }
+        }
         if (!song.albumArtUri.isNullOrBlank()) {
             try {
                 val uri = Uri.parse(song.albumArtUri)
@@ -668,11 +678,13 @@ class MusicService : MediaSessionService() {
 
         if (song != null) {
             artworkJob?.cancel()
-            artworkJob = serviceScope.launch(Dispatchers.IO) {
-                val bytes = loadArtworkBytes(song)
+            artworkJob = serviceScope.launch {
+                val bytes = withContext(Dispatchers.IO) {
+                    loadArtworkBytes(song)
+                }
                 if (bytes != null && isActive && player.currentMediaItemIndex == currentMediaItemIndex) {
-                    withContext(Dispatchers.Main) {
-                        val currentItem = player.currentMediaItem ?: return@withContext
+                    try {
+                        val currentItem = player.currentMediaItem ?: return@launch
                         val currentMetadata = currentItem.mediaMetadata
                         if (currentMetadata.artworkData == null) {
                             val updatedMetadata = currentMetadata.buildUpon()
@@ -685,6 +697,8 @@ class MusicService : MediaSessionService() {
                                 player.replaceMediaItem(currentMediaItemIndex, updatedItem)
                             }
                         }
+                    } catch (e: Exception) {
+                        android.util.Log.w("MusicService", "Failed to update artwork in player: ${e.message}")
                     }
                 }
             }
